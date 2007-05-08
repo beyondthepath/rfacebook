@@ -1,0 +1,76 @@
+============================== IMPORTANT NOTES ==============================
+
+
+** THIS IS ESPECIALLY IMPORTANT FOR PEOPLE WHO USED THE OLD CLIENT WHEN IT WAS CALLED "RBook" **
+
+[1] The RBook name was already taken, so now you need to change any "RBook" references to "RFacebook"
+
+[2] The desktop app login process is much simpler now:
+
+	fbsession = RFacebook::FacebookDesktopSession.new(APIKEY, APISECRET)
+	puts fbsession.get_login_url # tell the user to login at this url
+	# ...after the user logs in...
+	fbsession.activate
+
+[3] The "init_with_token" method is now "activate_with_token" (it is a little less confusing with this naming)
+
+[4] A helpful "NotActivatedException" will be raised if you forget to activate your session in one of the following ways:
+
+		Web: you must call either "activate_with_token" or "activate_with_previous_session"
+		Desktop: you must call either "activate" or "activate_with_previous_session"
+
+[5] Infinite sessions are now supported (web and desktop)...
+
+		Web:
+		
+			(a) Save the session key to a file or something
+				(i.e. "keyToSave = fbsession.session_key")
+				
+			(b) Normally, you would redirect the user to "get_login_url" and then call "activate_with_token" after the callback.
+				With an infinite session, skip these two steps and call "fbsession.activate_with_previous_session(keyToSave)" instead.
+		
+		Desktop:
+		
+			(a) Save the session key and session secret to a file or something
+				(i.e. "keyToSave = fbsession.session_key" and "secretToSave = fbsession.session_secret")
+			
+			(b) Normally, you would redirect the user to "get_login_url" and then call "activate".
+				With an infinite session, skip these two steps and call "fbsession.activate_with_previous_session(keyToSave, secretToSave)" instead.
+
+
+
+============================== LICENSE ==============================
+
+Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+Neither the name of the original author nor the names of contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+
+Some code was inspired by techniques used in Alpha Chen's old client.
+Some code was ported from the official PHP5 client.
+
