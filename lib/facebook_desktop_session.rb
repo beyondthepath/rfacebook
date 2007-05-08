@@ -46,10 +46,10 @@ class FacebookDesktopSession < FacebookSession
   #   Gets the authentication URL
   #
   # Parameters:
-  #   auth_token            - the string auth_token received from getToken
   #   options.next          - the page to redirect to after login
   #   options.popup         - boolean, whether or not to use the popup style (defaults to true)
   #   options.skipcookie    - boolean, whether to force new Facebook login (defaults to false)
+  #   options.hidecheckbox  - boolean, whether to show the "infinite session" option checkbox
   def get_login_url(options={})
     # options
     path_next = options[:next] ||= nil
@@ -60,9 +60,10 @@ class FacebookDesktopSession < FacebookSession
     optionalNext = (path_next == nil) ? "" : "&next=#{CGI.escape(path_next.to_s)}"
     optionalPopup = (popup == true) ? "&popup=true" : ""
     optionalSkipCookie = (skipcookie == true) ? "&skipcookie=true" : ""
+    optionalHideCheckbox = (hidecheckbox == true) ? "&hide_checkbox=true" : ""
     
     # build and return URL
-    return "http://#{LOGIN_SERVER_BASE_URL}#{LOGIN_SERVER_PATH}?v=1.0&api_key=#{@api_key}&auth_token=#{@desktop_auth_token}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}"
+    return "http://#{LOGIN_SERVER_BASE_URL}#{LOGIN_SERVER_PATH}?v=1.0&api_key=#{@api_key}&auth_token=#{@desktop_auth_token}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}#{optionalHideCheckbox}"
   end
   
   

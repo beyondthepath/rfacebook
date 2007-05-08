@@ -45,19 +45,21 @@ class FacebookWebSession < FacebookSession
   #   options.next          - the page to redirect to after login
   #   options.popup         - boolean, whether or not to use the popup style (defaults to true)
   #   options.skipcookie    - boolean, whether to force new Facebook login (defaults to false)
+  #   options.hidecheckbox  - boolean, whether to show the "infinite session" option checkbox
   def get_login_url(options={})
     # options
     path_next = options[:next] ||= nil
     popup = (options[:popup] == nil) ? true : false
-    skipcookie = (options[:skipcookie]) == nil ? false : true
+    skipcookie = (options[:skipcookie] == nil) ? false : true
     
     # get some extra portions of the URL
     optionalNext = (path_next == nil) ? "" : "&next=#{CGI.escape(path_next.to_s)}"
     optionalPopup = (popup == true) ? "&popup=true" : ""
     optionalSkipCookie = (skipcookie == true) ? "&skipcookie=true" : ""
+    optionalHideCheckbox = (hidecheckbox == true) ? "&hide_checkbox=true" : ""
     
     # build and return URL
-    return "http://#{LOGIN_SERVER_BASE_URL}#{LOGIN_SERVER_PATH}?v=1.0&api_key=#{@api_key}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}"
+    return "http://#{LOGIN_SERVER_BASE_URL}#{LOGIN_SERVER_PATH}?v=1.0&api_key=#{@api_key}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}#{optionalHideCheckbox}"
   end
   
   # Function: activate_with_token

@@ -141,7 +141,7 @@ class FacebookSession
   def call_method(method, params={}, use_ssl=false)
     
     # ensure that this object has been activated somehow
-    if !is_activated?
+    if (!method.include?("auth") and !is_activated?)
       raise NotActivatedException, "You must activate the session before using it."
     end
     
