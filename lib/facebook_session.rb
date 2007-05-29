@@ -39,14 +39,17 @@ require "hpricot"
 
 module RFacebook
 
-API_SERVER_BASE_URL      = "api.facebook.com"
-LOGIN_SERVER_BASE_URL    = "www.facebook.com"
-API_SERVER_PATH          = "/restserver.php"
-LOGIN_SERVER_PATH        = "/login.php"
+API_SERVER_BASE_URL       = "api.f8.facebook.com"
+API_PATH_REST             = "/restserver.php"
+
+WWW_SERVER_BASE_URL       = "www.f8.facebook.com"
+WWW_PATH_LOGIN            = "/login.php"
+WWW_PATH_ADD              = "/add.php"
+WWW_PATH_INSTALL          = "/install.php"
 
 class FacebookSession
   
-  attr_reader :session_uid, :session_key
+  # error handling accessors
   attr_reader :last_call_was_successful, :last_error
   attr_writer :suppress_exceptions
   
@@ -73,7 +76,7 @@ class FacebookSession
     
     # calculated parameters
     @api_server_base_url = API_SERVER_BASE_URL
-    @api_server_path = API_SERVER_PATH
+    @api_server_path = API_PATH_REST
         
     # optional parameters
     @suppress_exceptions = suppress_exceptions
@@ -83,37 +86,42 @@ class FacebookSession
     @last_error = nil
     @session_expired = false
     
-    # virtual members (subclasses will set these)
-    @session_uid = nil
-    @session_key = nil
-    
   end
   
   def session_expired?
     return (@session_expired == true)
   end
-    
-  protected
+
+  # SECTION: Public Abstract Interface
+
+  def is_valid?
+    raise Exception
+  end
+  
+  def session_key
+    raise Exception
+  end
+  
+  def session_user_id
+    raise Exception
+  end
+  
+  def session_expires
+    raise Exception
+  end
+  
+  def session_uid # deprecated
+    return session_user_id
+  end
   
   # SECTION: Protected Abstract Interface
+  protected
   
   def get_secret(params)
     raise Exception
   end
   
-  def init_with_token(auth_token)
-    raise Exception
-  end
-  
-  def session_key=(key)
-    raise Exception
-  end
-  
   def is_activated?
-    raise Exception
-  end
-  
-  def is_valid?
     raise Exception
   end
   
@@ -152,7 +160,7 @@ class FacebookSession
     params[:v] = "1.0"
     
     if (method != "auth.getSession" and method != "auth.createToken")
-      params[:session_key] = @session_key
+      params[:session_key] = session_key
       params[:call_id] = Time.now.to_f.to_s
     end
     
@@ -175,7 +183,7 @@ class FacebookSession
       @last_call_was_successful = false
       code = xml.at("error_code").inner_html
       msg = xml.at("error_msg").inner_html
-      @last_error = "ERROR #{code}: #{msg} (#{method}, #{params})"
+      @last_error = "ERROR #{code}: #{msg} (#{method.inspect}, #{params.inspect})"
       @last_error_code = code
       
       # check to see if this error was an expired session error
@@ -227,16 +235,19 @@ class FacebookSession
   # Function: param_signature
   #   Generates a param_signature for a call to the API, per the spec on Facebook
   #   see: <http://developers.facebook.com/documentation.php?v=1.0&doc=auth>
-  def param_signature(params)
+  def param_signature(params)    
+    return generate_signature(params, get_secret(params));
+  end
+  
+  def generate_signature(hash, secret)
     
     args = []
-    params.each do |k,v|
+    hash.each do |k,v|
       args << "#{k}=#{v}"
     end
-    sorted_array = args.sort
-    request_str = sorted_array.join("")
-    param_signature = Digest::MD5.hexdigest("#{request_str}#{get_secret(params)}") # uses Template method get_secret
-    return param_signature
+    sortedArray = args.sort
+    requestStr = sortedArray.join("")
+    return Digest::MD5.hexdigest("#{requestStr}#{secret}")
     
   end
 

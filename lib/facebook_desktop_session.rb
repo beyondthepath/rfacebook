@@ -49,12 +49,13 @@ class FacebookDesktopSession < FacebookSession
   #   options.next          - the page to redirect to after login
   #   options.popup         - boolean, whether or not to use the popup style (defaults to true)
   #   options.skipcookie    - boolean, whether to force new Facebook login (defaults to false)
-  #   options.hidecheckbox  - boolean, whether to show the "infinite session" option checkbox
+  #   options.hidecheckbox  - boolean, whether to show the "infinite session" option checkbox (defaults to false)
   def get_login_url(options={})
     # options
     path_next = options[:next] ||= nil
     popup = (options[:popup] == nil) ? true : false
     skipcookie = (options[:skipcookie] == nil) ? false : true
+    hidecheckbox = (options[:hidecheckbox] == nil) ? false : true
     
     # get some extra portions of the URL
     optionalNext = (path_next == nil) ? "" : "&next=#{CGI.escape(path_next.to_s)}"
@@ -63,7 +64,7 @@ class FacebookDesktopSession < FacebookSession
     optionalHideCheckbox = (hidecheckbox == true) ? "&hide_checkbox=true" : ""
     
     # build and return URL
-    return "http://#{LOGIN_SERVER_BASE_URL}#{LOGIN_SERVER_PATH}?v=1.0&api_key=#{@api_key}&auth_token=#{@desktop_auth_token}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}#{optionalHideCheckbox}"
+    return "http://#{WWW_SERVER_BASE_URL}#{WWW_PATH_LOGIN}?v=1.0&api_key=#{@api_key}&auth_token=#{@desktop_auth_token}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}#{optionalHideCheckbox}"
   end
   
   
@@ -96,11 +97,19 @@ class FacebookDesktopSession < FacebookSession
     
     # determine the current user's id
     result = call_method("users.getLoggedInUser")
-    @session_uid = result.at("users_getLoggedInUser_response").inner_html
+    @session_user_id = result.at("users_getLoggedInUser_response").inner_html
   end
   
   def is_valid?
     return (is_activated? and !session_expired?)
+  end
+  
+  def session_user_id
+    return @session_user_id
+  end
+  
+  def session_key
+    return @session_key
   end
   
   protected
@@ -117,7 +126,7 @@ class FacebookDesktopSession < FacebookSession
   def activate_with_token(auth_token)
     result = call_method("auth.getSession", {:auth_token => auth_token}, true)
     if result != nil
-      @session_uid = result.at("uid").inner_html
+      @session_user_id = result.at("uid").inner_html
       @session_key = result.at("session_key").inner_html
       @session_secret = result.at("secret").inner_html
     end
