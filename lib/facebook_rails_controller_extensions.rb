@@ -74,20 +74,20 @@ module RFacebook
     
     # SECTION: Helpful Methods
     
-    # def facebook_redirect_to(url)
-    #   
-    #   if in_facebook_canvas?
-    #     render :text => "<fb:redirect url=\"#{url}\" />"
-    # 
-    #   elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i # TODO: why doesn't this just check for iframe?
-    #     render :text => "<script type=\"text/javascript\">\ntop.location.href = \"#{url}\";\n</script>"
-    #     
-    #   else
-    #     redirect_to url
-    #     
-    #   end
-    #   
-    # end
+    def facebook_redirect_to(url)
+      
+      if (in_facebook_canvas? and !in_facebook_iframe?)
+        render :text => "<fb:redirect url=\"#{url}\" />"
+    
+      elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i # TODO: why doesn't this just check for iframe?
+        render :text => "<script type=\"text/javascript\">\ntop.location.href = \"#{url}\";\n</script>"
+        
+      else
+        redirect_to url
+        
+      end
+      
+    end
     
     def in_facebook_canvas?
       return (fbparams["in_fbframe"] != nil)
@@ -110,12 +110,8 @@ module RFacebook
     
     def require_facebook_install
       sess = fbsession
-      if (sess and !sess.is_valid?)
-        if in_facebook_canvas?
-          render :text => "<fb:redirect url=\"#{sess.get_install_url(:canvas=>true)}\" />"
-        else
-          redirect_to sess.get_install_url
-        end
+      if (sess and !sess.is_valid? and in_facebook_canvas?)
+        render :text => "<fb:redirect url=\"#{sess.get_install_url(:canvas=>true)}\" />"
       end
     end
     

@@ -4,12 +4,12 @@ require "rake/gempackagetask"
 
 spec = Gem::Specification.new do |s| 
   s.name = "rfacebook"
-  s.version = "0.5.1"
+  s.version = "0.6.0"
   s.author = "Matt Pizzimenti"
   s.email = "matt@livelearncode.com"
   s.homepage = "http://livelearncode.com/"
   s.platform = Gem::Platform::RUBY
-  s.summary = "A Ruby interface to the Facebook API v1.0+"
+  s.summary = "A Ruby interface to the Facebook API v1.0+.  Supports the new features from F8."
   s.files = FileList["lib/*"].to_a
   s.require_path = "lib"
   s.autorequire = "rfacebook"

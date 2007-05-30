@@ -1,6 +1,73 @@
-REMINDER: remove all the debug puts calls...
-
 ============================== FACEBOOK RAILS CONTROLLER EXTENSIONS NOTES ==============================
+
+Rails Applications:
+
+First, set up your Facebook Developer account properly.  By properly,
+I mean that you need to set your callback URL to be the root of your
+Rails application.  For example:
+
+	Callback URL >>> http://www.mycrazywebsite.com/     ***NOTE: trailing slash is necessary
+	Canvas Page URL >>> http://apps.facebook.com/mycrazywebsite
+	
+Then, whenever a user visits
+	
+	http://apps.facebook.com/mycrazywebsite/someRailsController/someAction
+
+...the Facebook API will call:
+	
+	http://www.mycrazywebsite.com/someRailsController/someAction
+
+
+You can get this behavior by installing the new RFacebook gem. After
+installing the gem, make your ApplicationController look like this:
+
+>>>>>>>>>>>> require "facebook_rails_controller_extensions"
+>>>>>>>>>>>>
+>>>>>>>>>>>> class ApplicationController < ActionController::Base
+>>>>>>>>>>>>
+>>>>>>>>>>>>   # additions to integrate Facebook into controllers
+>>>>>>>>>>>>   include RFacebook::RailsControllerExtensions
+>>>>>>>>>>>>
+>>>>>>>>>>>>   def facebook_api_key
+>>>>>>>>>>>>     return "<YOUR API KEY HERE>"
+>>>>>>>>>>>>   end
+>>>>>>>>>>>>
+>>>>>>>>>>>>   def facebook_api_secret
+>>>>>>>>>>>>     return "<YOUR API SECRET HERE>"
+>>>>>>>>>>>>   end
+>>>>>>>>>>>>
+>>>>>>>>>>>> end
+
+You will have access to 2 new items in your controllers:
+
+(1) "fbsession"
+Contains a FacebookWebSession.  Will return false for "is_valid?" if you haven't forced the user to log in.
+
+
+(2) "fbparams"
+Contains all the params that are prefixed with "fb_sig_".  You shouldn't ever *really* need this, but its there just in case.
+
+
+And, you have a few new filters to try out:
+
+(1) require_facebook_login
+(2) require_facebook_install
+
+For example, one of my Rails controllers looks like this:
+
+>>>>>>>>>>>> class FacebookController < ApplicationController
+>>>>>>>>>>>>   
+>>>>>>>>>>>>   before_filter :require_facebook_install # require users to install the application (less intrusive is to require_facebook_login)
+>>>>>>>>>>>>   
+>>>>>>>>>>>>   def index
+>>>>>>>>>>>>     xml = fbsession.users_getInfo(:uids => [fbsession.session_user_id], :fields => ["first_name", "last_name"])
+>>>>>>>>>>>>     @firstName = xml.at("first_name").inner_html
+>>>>>>>>>>>>     @lastName = xml.at("last_name").inner_html
+>>>>>>>>>>>>   end
+>>>>>>>>>>>>   
+>>>>>>>>>>>>   
+>>>>>>>>>>>> end
+
 
 
 ============================== FACEBOOK PLATFORM NOTES ==============================

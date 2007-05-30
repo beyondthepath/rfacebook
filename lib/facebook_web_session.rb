@@ -102,9 +102,7 @@ class FacebookWebSession < FacebookSession
     # SECTION: Callback Verification Helpers
     
     def get_fb_sig_params(originalParams)
-      
-      puts "DEBUG>>>>>> in sig_params #{originalParams.inspect}"
-      
+            
       # setup
       timeout = 48*3600
       namespace = "fb_sig"
@@ -123,17 +121,14 @@ class FacebookWebSession < FacebookSession
       # handle invalidation
       if (timeout and (sigParams["time"].nil? or (Time.now.to_i - sigParams["time"].to_i > timeout.to_i)))
         # invalidate if the timeout has been reached
-        puts "DEBUG>>>>>> timeout reached"
         sigParams = {}
       end
       
       if !sig_params_valid?(sigParams, originalParams[namespace])
         # invalidate if the signatures don't match
-        puts "DEBUG>>>>>> signature didnt match"
         sigParams = {}
       end
       
-      puts "DEBUG>>>>>> got sig_params #{sigParams.inspect}"
       return sigParams
       
     end
