@@ -39,10 +39,10 @@ require "hpricot"
 
 module RFacebook
 
-API_SERVER_BASE_URL       = "api.f8.facebook.com"
+API_SERVER_BASE_URL       = "api.facebook.com"
 API_PATH_REST             = "/restserver.php"
 
-WWW_SERVER_BASE_URL       = "www.f8.facebook.com"
+WWW_SERVER_BASE_URL       = "www.facebook.com"
 WWW_PATH_LOGIN            = "/login.php"
 WWW_PATH_ADD              = "/add.php"
 WWW_PATH_INSTALL          = "/install.php"

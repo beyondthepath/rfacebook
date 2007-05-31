@@ -9,6 +9,7 @@ module RFacebook
     
     class APIKeyNeededException < Exception; end
     class APISecretNeededException < Exception; end
+    class APIFinisherNeededException < Exception; end
     
     # SECTION: Template Methods (must be implemented by concrete subclass)
     
@@ -18,6 +19,10 @@ module RFacebook
     
     def facebook_api_secret
       raise APISecretNeededException
+    end
+    
+    def finish_facebook_login
+      raise APIFinisherNeededException
     end
     
     
@@ -47,24 +52,24 @@ module RFacebook
       
       if !@fbsession
         
-        # create a Facebook session that can be used by the controller
+        # create a session no matter what
         @fbsession = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
-
-        # now we need to activate the session somehow.  If the signature parameters are bad, then we don't make the session
-        if fbparams
-          # these might be nil
-          facebookUid = fbparams["user"]
-          facebookSessionKey = fbparams["session_key"]
-          expirationTime = fbparams["expires"]
         
-          # Method 1: user logged in and was redirected to our site (iframe/external)
-          if ( params["auth_token"] )
-            @fbsession.activate_with_token(params["auth_token"])
-          # Method 2: we have the user id and key from the fb_sig_ params
-          elsif (facebookUid and facebookSessionKey and expirationTime)
-            @fbsession.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
-          end  
-        end
+        # then try to activate it somehow (or retrieve from previous state)
+        # these might be nil
+        facebookUid = fbparams["user"]
+        facebookSessionKey = fbparams["session_key"]
+        expirationTime = fbparams["expires"]
+        
+        if (facebookUid and facebookSessionKey and expirationTime)
+          # Method 1: we have the user id and key from the fb_sig_ params
+          @fbsession.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
+          
+        elsif (!in_facebook_canvas? and session[:rfacebook_fbsession])
+          # Method 2: we've logged in the user already
+          @fbsession = session[:rfacebook_fbsession]
+          
+        end  
         
       end
       
@@ -75,43 +80,65 @@ module RFacebook
     # SECTION: Helpful Methods
     
     def facebook_redirect_to(url)
-      
-      if (in_facebook_canvas? and !in_facebook_iframe?)
-        render :text => "<fb:redirect url=\"#{url}\" />"
-    
-      elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i # TODO: why doesn't this just check for iframe?
-        render :text => "<script type=\"text/javascript\">\ntop.location.href = \"#{url}\";\n</script>"
-        
+      if in_facebook_canvas?
+        render :text => "<fb:redirect url=\"#{url}\" />"        
       else
         redirect_to url
-        
       end
-      
     end
     
     def in_facebook_canvas?
-      return (fbparams["in_fbframe"] != nil)
+      return (fbparams["in_canvas"] != nil)
     end
         
-    def in_facebook_iframe?
-      return (fbparams["in_iframe"] != nil)
+    def in_facebook_frame?
+      return (fbparams["in_iframe"] != nil || fbparams["in_canvas"] != nil)
+    end
+    
+    def handle_facebook_login
+
+      if (params["auth_token"] and !in_facebook_canvas?)
+        
+        # create a session
+        session[:rfacebook_fbsession] = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
+        session[:rfacebook_fbsession].activate_with_token(params["auth_token"])
+        
+        # template method call upon success
+        if session[:rfacebook_fbsession].is_valid?
+          finish_facebook_login
+        end
+        
+      end
+      
     end
     
     def require_facebook_login
-      sess = fbsession
-      if (sess and !sess.is_valid?)
-        if in_facebook_canvas?
-          render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
-        else
-          redirect_to sess.get_login_url
+      
+      # handle a facebook login if given (external sites and iframe only)
+      handle_facebook_login
+      
+      if !performed?
+        # try to get the session
+        sess = fbsession
+      
+        # handle invalid sessions by forcing the user to log in      
+        if !sess.is_valid?
+          if in_facebook_canvas?
+            render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
+            return false
+          else
+            redirect_to sess.get_login_url
+            return false
+          end
         end
       end
+      
     end
     
     def require_facebook_install
       sess = fbsession
-      if (sess and !sess.is_valid? and in_facebook_canvas?)
-        render :text => "<fb:redirect url=\"#{sess.get_install_url(:canvas=>true)}\" />"
+      if (in_facebook_canvas? and !sess.is_valid?)
+        render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
       end
     end
     

@@ -21,22 +21,22 @@ Then, whenever a user visits
 You can get this behavior by installing the new RFacebook gem. After
 installing the gem, make your ApplicationController look like this:
 
->>>>>>>>>>>> require "facebook_rails_controller_extensions"
->>>>>>>>>>>>
->>>>>>>>>>>> class ApplicationController < ActionController::Base
->>>>>>>>>>>>
->>>>>>>>>>>>   # additions to integrate Facebook into controllers
->>>>>>>>>>>>   include RFacebook::RailsControllerExtensions
->>>>>>>>>>>>
->>>>>>>>>>>>   def facebook_api_key
->>>>>>>>>>>>     return "<YOUR API KEY HERE>"
->>>>>>>>>>>>   end
->>>>>>>>>>>>
->>>>>>>>>>>>   def facebook_api_secret
->>>>>>>>>>>>     return "<YOUR API SECRET HERE>"
->>>>>>>>>>>>   end
->>>>>>>>>>>>
->>>>>>>>>>>> end
+ require "facebook_rails_controller_extensions"
+
+ class ApplicationController < ActionController::Base
+
+   # additions to integrate Facebook into controllers
+   include RFacebook::RailsControllerExtensions
+
+   def facebook_api_key
+     return "YOUR API KEY HERE"
+   end
+
+   def facebook_api_secret
+     return "YOUR API SECRET HERE"
+   end
+
+ end
 
 You will have access to 2 new items in your controllers:
 
@@ -55,18 +55,18 @@ And, you have a few new filters to try out:
 
 For example, one of my Rails controllers looks like this:
 
->>>>>>>>>>>> class FacebookController < ApplicationController
->>>>>>>>>>>>   
->>>>>>>>>>>>   before_filter :require_facebook_install # require users to install the application (less intrusive is to require_facebook_login)
->>>>>>>>>>>>   
->>>>>>>>>>>>   def index
->>>>>>>>>>>>     xml = fbsession.users_getInfo(:uids => [fbsession.session_user_id], :fields => ["first_name", "last_name"])
->>>>>>>>>>>>     @firstName = xml.at("first_name").inner_html
->>>>>>>>>>>>     @lastName = xml.at("last_name").inner_html
->>>>>>>>>>>>   end
->>>>>>>>>>>>   
->>>>>>>>>>>>   
->>>>>>>>>>>> end
+ class FacebookController < ApplicationController
+   
+   before_filter :require_facebook_install # require users to install the application (less intrusive is to require_facebook_login)
+   
+   def index
+     xml = fbsession.users_getInfo(:uids => [fbsession.session_user_id], :fields => ["first_name", "last_name"])
+     @firstName = xml.at("first_name").inner_html
+     @lastName = xml.at("last_name").inner_html
+   end
+   
+   
+ end
 
 
 
