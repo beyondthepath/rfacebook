@@ -94,7 +94,7 @@ class FacebookWebSession < FacebookSession
       optionalNext = (nextPage == nil) ? "" : "&next=#{CGI.escape(nextPage.to_s)}"
     
       # build and return URL
-      return "http:/#{WWW_SERVER_BASE_URL}#{WWW_PATH_INSTALL}?api_key=#{@api_key}#{optionalNext}"
+      return "http://#{WWW_SERVER_BASE_URL}#{WWW_PATH_INSTALL}?api_key=#{@api_key}#{optionalNext}"
     
     end
   
