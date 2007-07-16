@@ -53,11 +53,11 @@ class FacebookSession
   attr_reader :last_call_was_successful, :last_error
   attr_writer :suppress_exceptions
   
-  # SECTION: Exceptions
+  # SECTION: StandardErrors
     
-  class RemoteException < Exception; end
-  class ExpiredSessionException < Exception; end
-  class NotActivatedException < Exception; end
+  class RemoteStandardError < StandardError; end
+  class ExpiredSessionStandardError < StandardError; end
+  class NotActivatedStandardError < StandardError; end
   
   # SECTION: Public Methods  
   
@@ -95,19 +95,19 @@ class FacebookSession
   # SECTION: Public Abstract Interface
 
   def is_valid?
-    raise Exception
+    raise StandardError
   end
   
   def session_key
-    raise Exception
+    raise StandardError
   end
   
   def session_user_id
-    raise Exception
+    raise StandardError
   end
   
   def session_expires
-    raise Exception
+    raise StandardError
   end
   
   def session_uid # deprecated
@@ -118,11 +118,11 @@ class FacebookSession
   protected
   
   def get_secret(params)
-    raise Exception
+    raise StandardError
   end
   
   def is_activated?
-    raise Exception
+    raise StandardError
   end
   
   # SECTION: Protected Concrete Interface
@@ -150,11 +150,11 @@ class FacebookSession
     
     # ensure that this object has been activated somehow
     if (!method.include?("auth") and !is_activated?)
-      raise NotActivatedException, "You must activate the session before using it."
+      raise NotActivatedStandardError, "You must activate the session before using it."
     end
     
     # set up params hash
-    params = params ||= {}
+    params = params.dup # patch courtesy of Project Agape
     params[:method] = "facebook.#{method}"
     params[:api_key] = @api_key
     params[:v] = "1.0"
@@ -189,11 +189,11 @@ class FacebookSession
       # check to see if this error was an expired session error
       if code.to_i == 102
         @session_expired = true
-        raise ExpiredSessionException, @last_error unless @suppress_exceptions == true
+        raise ExpiredSessionStandardError, @last_error unless @suppress_exceptions == true
       end
       
       # otherwise, just throw a generic expired session
-      raise RemoteException, @last_error unless @suppress_exceptions == true
+      raise RemoteStandardError, @last_error unless @suppress_exceptions == true
       
       return nil
     end

@@ -5,24 +5,24 @@ module RFacebook
   module RailsControllerExtensions
     
         
-    # SECTION: Exceptions
+    # SECTION: StandardErrors
     
-    class APIKeyNeededException < Exception; end
-    class APISecretNeededException < Exception; end
-    class APIFinisherNeededException < Exception; end
+    class APIKeyNeededStandardError < StandardError; end
+    class APISecretNeededStandardError < StandardError; end
+    class APIFinisherNeededStandardError < StandardError; end
     
     # SECTION: Template Methods (must be implemented by concrete subclass)
     
     def facebook_api_key
-      raise APIKeyNeededException
+      raise APIKeyNeededStandardError
     end
     
     def facebook_api_secret
-      raise APISecretNeededException
+      raise APISecretNeededStandardError
     end
     
     def finish_facebook_login
-      raise APIFinisherNeededException
+      raise APIFinisherNeededStandardError
     end
     
     
@@ -31,7 +31,7 @@ module RFacebook
     
     def fbparams
       
-      @fbparams ||= {};
+      params = (params || {}).dup
       
       # try to get fbparams from the params hash
       if (@fbparams.length <= 0)
@@ -81,7 +81,9 @@ module RFacebook
     
     def facebook_redirect_to(url)
       if in_facebook_canvas?
-        render :text => "<fb:redirect url=\"#{url}\" />"        
+        render :text => "<fb:redirect url=\"#{url}\" />"     
+      elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i
+        render :text => "<script type=\"text/javascript\">\ntop.location.href = \"#{url}\";\n</script>";
       else
         redirect_to url
       end
@@ -105,9 +107,12 @@ module RFacebook
         
         # template method call upon success
         if session[:rfacebook_fbsession].is_valid?
+          RAILS_DEFAULT_LOGGER.debug "** rfacebook: Login was successful, calling finish_facebook_login"
           finish_facebook_login
         end
         
+      else
+        RAILS_DEFAULT_LOGGER.debug "** rfacebook: Didn't activate session from handle_facebook_login"
       end
       
     end
@@ -118,15 +123,23 @@ module RFacebook
       handle_facebook_login
       
       if !performed?
+        
+        RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering has not been performed"
+        
         # try to get the session
         sess = fbsession
       
         # handle invalid sessions by forcing the user to log in      
         if !sess.is_valid?
+          
+          RAILS_DEFAULT_LOGGER.debug "** rfacebook: Session is not valid"
+          
           if in_facebook_canvas?
+            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering canvas redirect"
             render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
             return false
           else
+            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Redirecting to login"
             redirect_to sess.get_login_url
             return false
           end
