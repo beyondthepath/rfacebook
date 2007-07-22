@@ -176,7 +176,7 @@ class FacebookSession
     
     # do the request
     xmlstring = post_request(@api_server_base_url, @api_server_path, method, params, use_ssl)
-    xml = Hpricot(xmlstring)
+    xml = Hpricot.XML(xmlstring)
 
     # error checking    
     if xml.at("error_response")
