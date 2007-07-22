@@ -154,6 +154,9 @@ class FacebookSession
     end
     
     # set up params hash
+    if (!params)
+      params = {}
+    end
     params = params.dup # patch courtesy of Project Agape
     params[:method] = "facebook.#{method}"
     params[:api_key] = @api_key
