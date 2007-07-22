@@ -4,7 +4,7 @@ require "rake/gempackagetask"
 
 spec = Gem::Specification.new do |s| 
   s.name = "rfacebook"
-  s.version = "0.6.5"
+  s.version = "0.6.6"
   s.author = "Matt Pizzimenti"
   s.email = "matt@livelearncode.com"
   s.homepage = "http://livelearncode.com/"
@@ -16,7 +16,7 @@ spec = Gem::Specification.new do |s|
   s.test_files = []#FileList["{test}/**/*test.rb"].to_a
   s.has_rdoc = false
   s.extra_rdoc_files = ["README"]
-  s.add_dependency("hpricot", ">= 0.4.0")
+  s.add_dependency("hpricot", ">= 0.6.0")
 end
  
 Rake::GemPackageTask.new(spec) do |pkg| 

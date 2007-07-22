@@ -137,7 +137,7 @@ class FacebookDesktopSession < FacebookSession
   #   Returns a string auth_token
   def get_auth_token
     result = call_method("auth.createToken", {})
-    result = result.at("auth_createtoken_response").inner_html.to_s ||= result.at("auth_createToken_response").inner_html.to_s
+    result = result.at("auth_createToken_response").inner_html.to_s ||= result.at("auth_createToken_response").inner_html.to_s
     return result
   end
   
