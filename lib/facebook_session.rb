@@ -133,7 +133,7 @@ class FacebookSession
   #   this converts a call to "auth_getSession" to "auth.getSession"
   #   and does the proper API call using the parameter hash given.  
   def method_missing(methodSymbol, *params)
-    methodString = methodSymbol.to_s.gsub!("_", ".")
+    methodString = methodSymbol.to_s.gsub("_", ".")
     # TODO: check here for valid method names
     call_method(methodString, params.first)
   end

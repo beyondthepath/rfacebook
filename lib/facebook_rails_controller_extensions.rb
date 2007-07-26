@@ -34,7 +34,7 @@ module RFacebook
       params = (self.params || {}).dup
       
       # try to get fbparams from the params hash
-      if (@fbparams.length <= 0)
+      if (!@fbparams || @fbparams.length <= 0)
         @fbparams = fbsession.get_fb_sig_params(params)
       end
       
