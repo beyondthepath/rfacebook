@@ -31,7 +31,7 @@ module RFacebook
     
     def fbparams
       
-      params = (params || {}).dup
+      params = (self.params || {}).dup
       
       # try to get fbparams from the params hash
       if (@fbparams.length <= 0)
@@ -150,7 +150,7 @@ module RFacebook
     
     def require_facebook_install
       sess = fbsession
-      if (in_facebook_canvas? and !sess.is_valid?)
+      if (in_facebook_canvas? and (!sess.is_valid? or (fbparams["added"].to_i != 1)))
         render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
       end
     end
