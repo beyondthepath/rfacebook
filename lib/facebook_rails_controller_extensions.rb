@@ -31,11 +31,11 @@ module RFacebook
     
     def fbparams
       
-      params = (self.params || {}).dup
+      dup_params = (self.params || {}).dup
       
       # try to get fbparams from the params hash
       if (!@fbparams || @fbparams.length <= 0)
-        @fbparams = fbsession.get_fb_sig_params(params)
+        @fbparams = fbsession.get_fb_sig_params(dup_params)
       end
       
       # else, try to get fbparams from the cookies hash
