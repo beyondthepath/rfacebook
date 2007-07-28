@@ -1,0 +1,146 @@
+# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+# 
+# Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+# 
+# Neither the name of the original author nor the names of contributors
+# may be used to endorse or promote products derived from this software
+# without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+require "hpricot"
+
+# class HpricotHashWrapper
+#   
+#   def initialize(hpricotDoc)
+#     @doc = hpricotDoc
+#   end
+#   
+#   def to_hash
+#     puts "----"
+#     begin
+#       hashResult = {}
+#       @doc.each_child do |child|
+#         puts "child node: #{child}"
+#         hashResult[child.to_s] = HpricotHashWrapper.new(child).to_hash
+#       end
+#       return hashResult
+#     rescue
+#       return @doc.inner_html
+#     end
+#   end
+#   
+# end
+
+module RFacebook
+
+  module FacepricotChaining
+  
+    def make_facepricot_chain(key, doc)
+    
+      if matches = /(.*)_list/.match(key)
+        listKey = matches[1]
+      end
+    
+      result = nil
+      
+      if !result
+        if listKey
+          result = doc.search("/#{listKey}")
+        end
+      end
+    
+      if !result
+        result = doc.at("/#{key}")
+      end
+    
+      if !result
+        if listKey
+          result = doc.search("//#{listKey}")
+        end
+      end
+    
+      if !result
+        result = doc.at("//#{key}")
+      end
+    
+      if result
+        if result.is_a?(Array)
+          return result.map{|r| FacepricotChain.new(r)}
+        else
+          return FacepricotChain.new(result)
+        end
+      else
+        return nil
+      end
+    
+    end
+    
+  end
+  
+  class Facepricot
+    
+    include FacepricotChaining
+    
+    def initialize(xml)
+      @doc = Hpricot.XML(xml)
+    end
+    
+    def method_missing(methodSymbol, *params)
+      begin
+        @doc.method(methodSymbol).call(*params) # pose as Hpricot document
+      rescue
+        return make_facepricot_chain(methodSymbol.to_s, @doc.containers[0])
+      end
+    end
+    
+    def hpricot
+      return @doc
+    end
+    
+    # def to_hash
+    #   return HpricotHashWrapper.new(@doc.containers[0]).to_hash
+    # end
+    
+  end
+  
+  class FacepricotChain < String
+
+    include FacepricotChaining
+
+    def initialize(hpricotDoc)
+      super(hpricotDoc.inner_html)
+      @doc = hpricotDoc
+    end
+    
+    def method_missing(methodSymbol, *params)
+      return make_facepricot_chain(methodSymbol.to_s, @doc)
+    end
+    
+    # def to_hash
+    #   return HpricotHashWrapper.new(@doc).to_hash
+    # end
+    
+  end
+
+  
+end
