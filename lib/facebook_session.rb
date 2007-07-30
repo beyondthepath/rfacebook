@@ -86,10 +86,21 @@ class FacebookSession
     @last_error = nil
     @session_expired = false
     
+    # cache object for API calls
+    @callcache = {}
+    
   end
   
   def session_expired?
     return (@session_expired == true)
+  end
+  
+  def logger
+    return @logger
+  end
+  
+  def logger=(externalLogger)
+    @logger = externalLogger
   end
 
   # SECTION: Public Abstract Interface
@@ -133,9 +144,30 @@ class FacebookSession
   #   this converts a call to "auth_getSession" to "auth.getSession"
   #   and does the proper API call using the parameter hash given.  
   def method_missing(methodSymbol, *params)
-    methodString = methodSymbol.to_s.gsub("_", ".")
-    # TODO: check here for valid method names
-    call_method(methodString, params.first)
+    tokens = methodSymbol.to_s.split("_")
+    if tokens[0] == "cached"
+      tokens.shift
+      return cached_call_method(tokens.join("."), params.first)
+    else
+      return call_method(tokens.join("."), params.first)
+    end
+  end
+  
+  def cached_call_method(method,params)
+    key = cache_key_for(method,params)
+    @logger.debug "RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
+    return @callcache[key] ||= call_method(method,params)
+  end
+  
+  def cache_key_for(method,params)
+    pairs = []
+    params.each do |k,v|
+      if v.is_a?(Array)
+        v = v.join(",")
+      end
+      pairs << "#{k}=#{v}"
+    end
+    return "#{method}(#{pairs.sort.join("...")})".to_sym
   end
 
   
@@ -147,7 +179,9 @@ class FacebookSession
   #   params              - hash of key,value pairs for the parameters to this method
   #   use_ssl             - set to true if the call will be made over SSL
   def call_method(method, params={}, use_ssl=false)
-    
+
+    @logger.debug "RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call" if @logger
+
     # ensure that this object has been activated somehow
     if (!method.include?("auth") and !is_activated?)
       raise NotActivatedStandardError, "You must activate the session before using it."
@@ -175,7 +209,6 @@ class FacebookSession
     
     # prepare internal state
     @last_call_was_successful = true
-    #@last_error = nil
     
     # do the request
     xmlstring = post_request(@api_server_base_url, @api_server_path, method, params, use_ssl)
@@ -183,6 +216,9 @@ class FacebookSession
 
     # error checking    
     if xml.at("error_response")
+      
+      @logger.debug "RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed" if @logger
+      
       @last_call_was_successful = false
       code = xml.at("error_code").inner_html
       msg = xml.at("error_msg").inner_html
@@ -219,7 +255,6 @@ class FacebookSession
   #   params                      - hash of key/value pairs that get sent as form data to the server
   #   use_ssl                     - set to true if you want to use SSL for this request
   def post_request(api_server_base_url, api_server_path, method, params, use_ssl)
-    
     # get a server handle
     port = (use_ssl == true) ? 443 : 80
     http_server = Net::HTTP.new(@api_server_base_url, port)
@@ -232,7 +267,6 @@ class FacebookSession
     
     # return the text of the body
     return response
-    
   end
   
   # Function: param_signature
@@ -243,7 +277,6 @@ class FacebookSession
   end
   
   def generate_signature(hash, secret)
-    
     args = []
     hash.each do |k,v|
       args << "#{k}=#{v}"
@@ -251,7 +284,6 @@ class FacebookSession
     sortedArray = args.sort
     requestStr = sortedArray.join("")
     return Digest::MD5.hexdigest("#{requestStr}#{secret}")
-    
   end
 
 end

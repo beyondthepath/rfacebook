@@ -29,28 +29,6 @@
 
 require "hpricot"
 
-# class HpricotHashWrapper
-#   
-#   def initialize(hpricotDoc)
-#     @doc = hpricotDoc
-#   end
-#   
-#   def to_hash
-#     puts "----"
-#     begin
-#       hashResult = {}
-#       @doc.each_child do |child|
-#         puts "child node: #{child}"
-#         hashResult[child.to_s] = HpricotHashWrapper.new(child).to_hash
-#       end
-#       return hashResult
-#     rescue
-#       return @doc.inner_html
-#     end
-#   end
-#   
-# end
-
 module RFacebook
 
   module FacepricotChaining

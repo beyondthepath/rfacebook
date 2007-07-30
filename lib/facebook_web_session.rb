@@ -27,11 +27,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# Some code was inspired by techniques used in Alpha Chen's old client.
-# Some code was ported from the official PHP5 client.
-#
-
 require "facebook_session"
 
 module RFacebook
