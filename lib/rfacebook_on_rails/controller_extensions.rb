@@ -37,6 +37,8 @@ module RFacebook
     
       class APIKeyNeededStandardError < StandardError; end
       class APISecretNeededStandardError < StandardError; end
+      class APICanvasPathNeededStandardError < StandardError; end
+      class APICallbackNeededStandardError < StandardError; end
       class APIFinisherNeededStandardError < StandardError; end
     
       # SECTION: Template Methods (must be implemented by concrete subclass)
@@ -47,6 +49,14 @@ module RFacebook
     
       def facebook_api_secret
         raise APISecretNeededStandardError
+      end
+      
+      def facebook_canvas_path
+        raise APICanvasPathNeededStandardError
+      end
+      
+      def facebook_callback_path
+        raise APICallbackNeededStandardError
       end
     
       def finish_facebook_login
@@ -182,6 +192,47 @@ module RFacebook
           render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
         end
       end
+      
+      # Thanks to Hoan Ton-That - method modified from original @ http://code.google.com/p/facebook-rails/
+      def url_for(options = {}, *params)
+        
+        # get a handle on some of our paths
+        callbackPath = self.facebook_callback_path
+        canvasPath = self.facebook_canvas_path
+        
+        # check options
+        if options.is_a?(String)
+          return options
+        elsif options.delete(:canvas) == false
+          return super(options, *params)
+        end
+      
+        # Get the path that Rails would normally generate
+        path = super(options.merge(:only_path => true), *params)
+      
+        # Rewrite it if it begins with our callback path (ex /fb)
+        if path.starts_with?(callbackPath)
+          # Remove the callback path: "/fb/path/to/x" becomes "path/to/x"
+          newpath = path[callbackPath.length+1..-1]
+      
+          # Done if we're not adding the canvas path
+          return newpath if options.delete(:only_path_no_prefix)
+      
+          # Append the canvas path: "path/to/x" becomes "/myapp/path/to/x"
+          newpath = "#{canvasPath}/#{newPath}"
+      
+          # Done if we're only getting the path
+          return newpath if options.delete(:only_path)
+      
+          # Append the facebook domain: "/myapp/path/to/x" becomes "http://apps.facebook.com/myapp/path/to/x"
+          newpath = "http://apps.facebook.com#{newpath}"
+          return newpath
+        else
+          raise StandardError, "#{path} does not begin with #{callbackPath}"
+        end
+        
+      end
+
     
     end
   end

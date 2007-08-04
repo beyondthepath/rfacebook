@@ -94,11 +94,7 @@ module RFacebook
     def hpricot
       return @doc
     end
-    
-    # def to_hash
-    #   return HpricotHashWrapper.new(@doc.containers[0]).to_hash
-    # end
-    
+        
   end
   
   class FacepricotChain < String
@@ -113,10 +109,6 @@ module RFacebook
     def method_missing(methodSymbol, *params)
       return make_facepricot_chain(methodSymbol.to_s, @doc)
     end
-    
-    # def to_hash
-    #   return HpricotHashWrapper.new(@doc).to_hash
-    # end
     
   end
 
