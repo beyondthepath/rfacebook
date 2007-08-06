@@ -66,61 +66,101 @@ module RFacebook
       # SECTION: Acts As Facebook User
       module ActsAsFacebookUser
         
+        ACTORS = [] # holds a reference to all classes that have ActsAsFacebookUser injected
+        
+        FIELDS = [
+          "about_me",
+          "activities",
+          "affiliations",
+          "birthday",
+          "books",
+          "current_location",
+          "education_history",
+          "name",
+          "first_name",
+          "last_name",
+          "hometown_location",
+          "hs_info",
+          "interests",
+          "relationship_status",
+          "meeting_for",
+          "meeting_sex",
+          "movies",
+          "music",
+          "notes_count",
+          "political",
+          "profile_update_time",
+          "quotes",
+          "religion",
+          "sex",
+          "significant_other_id",
+          "status",
+          "timezone",
+          "tv",
+          "wall_count",
+          "work_history",
+        ]
+
+        
         ######################
         module ClassMethods
-        
-          def import_from_facebook_session(sess)
-            existingUser = find_by_facebook_session_key(sess.session_key)
-            if existingUser
-              RAILS_DEFAULT_LOGGER.debug "Tried to create a user that already exists"
-              return existingUser
-            else
+                    
+          def find_or_create_by_facebook_session(sess)
+            instance = find_by_facebook_uid(sess.session_user_id)
+            if !instance
               instance = self.new
-              instance.facebook_session = sess
-              instance.facebook_session_key = instance.facebook_session.session_key
-              instance.facebook_user_id = instance.facebook_session.session_user_id
-              return instance
             end
-          end
-      
-          def find(*params)
-            instance = super(*params)
-            instance.populate_facebook_session!
+            instance.facebook_session = sess
+            instance.save
             return instance
           end
-      
-          def create(*params)
-            instance = super(*params)
-            instance.populate_facebook_session!
-            self.facebook_session_key = self.facebook_session.session_key
-            self.facebook_user_id = self.facebook_session.session_user_id
-            if instance.save
-              return instance
-            else
-              return nil
-            end
-          end
-        
+                            
         end
       
         ######################
         module InstanceMethods
-          attr_accessor :facebook_session
-      
+          
+          def facebook_session
+            if !@facebook_session
+              self.facebook_session = FacebookWebSession.new(self.facebook_api_key, self.facebook_api_secret)
+              begin
+                self.facebook_session.activate_with_previous_session(self.facebook_session_key, self.facebook_uid)
+              rescue
+                # not a valid facebook session, should we nil it out?
+              end
+            end
+            return @facebook_session
+          end
+          
+          def facebook_session=(sess)
+            @facebook_session = sess
+            self.facebook_session_key = @facebook_session.session_key
+            self.facebook_uid = @facebook_session.session_user_id
+          end
+
           def has_infinite_session_key?
             return self.facebook_session_key != nil
           end
-      
-          private
-      
-          def populate_facebook_session!
-            begin
-              self.facebook_session = FacebookWebSession.new(self.facebook_api_key, self.facebook_api_secret)
-              self.facebook_session.activate_with_previous_session(self.facebook_session_key, self.facebook_uid)
-            rescue
-              self.facebook_session = nil # we don't have a valid session
+          
+          def self.included(base)
+            ActsAsFacebookUser::ACTORS << base
+            ActsAsFacebookUser::FIELDS.each do |fieldname|
+              base.class_eval <<-end_eval
+                
+                def #{fieldname}
+                  if facebook_session.is_valid?
+                    return facebook_session.cached_users_getInfo(
+                      :uids => [facebook_uid],
+                      :fields => ActsAsFacebookUser::FIELDS).user.send(:#{fieldname})
+                  else
+                    return nil
+                  end
+                end
+              
+              end_eval
             end
           end
+                
         end
         
       end

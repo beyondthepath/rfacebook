@@ -27,56 +27,38 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require "rfacebook_on_rails/view_extensions"
-require "rfacebook_on_rails/controller_extensions"
-require "rfacebook_on_rails/model_extensions"
-
 module RFacebook
   module Rails
-    module Plugin
-      #####
-      module ControllerExtensions
-        def facebook_api_key
-          FACEBOOK["key"]
-        end
-        def facebook_api_secret
-          FACEBOOK["secret"]
-        end
-        def facebook_canvas_path
-          FACEBOOK["canvas_path"]
-        end
-        def facebook_callback_path
-          FACEBOOK["callback_path"]
-        end
-      end  
-      #####
-      module ModelExtensions
-        def facebook_api_key
-          FACEBOOK["key"]
-        end
-        def facebook_api_secret
-          FACEBOOK["secret"]
-        end
+    module ViewExtensions
+      
+      def in_facebook_canvas?
+        @controller.in_facebook_canvas?
       end
-      #####
-      module ViewExtensions
+      
+      def in_facebook_frame?
+        @controller.in_facebook_frame?
       end
+      
+      def fbparams
+        @controller.fbparams
+      end
+      
+      def fbsession
+        @controller.fbsession
+      end
+      
+      def image_path(*params)
+        path = super(*params)
+        if in_facebook_canvas? # TODO: or in_facebook_frame?)
+          path = "#{request.protocol}#{request.host_with_port}#{path}"
+        end
+        return path
+      end
+
+      def rfacebook_debug_panel(options={})
+        return @controller.rfacebook_debug_panel(options)
+      end
+      
     end
   end
 end
-
-begin
-  FACEBOOK = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")[RAILS_ENV]
-rescue
-  FACEBOOK = {}
-end
-
-ActionView::Base.send(:include, RFacebook::Rails::ViewExtensions)
-ActionView::Base.send(:include, RFacebook::Rails::Plugin::ViewExtensions)
-
-ActionController::Base.send(:include, RFacebook::Rails::ControllerExtensions)
-ActionController::Base.send(:include, RFacebook::Rails::Plugin::ControllerExtensions)
-
-ActiveRecord::Base.send(:include, RFacebook::Rails::ModelExtensions)
-ActiveRecord::Base.send(:include, RFacebook::Rails::Plugin::ModelExtensions)
-

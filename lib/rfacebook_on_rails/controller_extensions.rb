@@ -28,6 +28,8 @@
 #
 
 require "facebook_web_session"
+require "rfacebook_on_rails/status_manager"
+require "rfacebook_on_rails/templates/debug_panel"
 
 module RFacebook
   module Rails
@@ -81,6 +83,9 @@ module RFacebook
         if (@fbparams.length <= 0)
           @fbparams = fbsession.get_fb_sig_params(cookies)
         end
+        
+        # TODO: fb_sig_params now includes all friend ids by default, so we can avoid an API call to friends.get
+        #       we should extend FacebookWebSession for Rails to make this optimization
       
         return @fbparams
       
@@ -128,14 +133,20 @@ module RFacebook
       end
     
       def in_facebook_canvas?
-        return (fbparams["in_canvas"] != nil)
+        return (params["fb_sig_in_canvas"] != nil)
       end
         
       def in_facebook_frame?
-        return (fbparams["in_iframe"] != nil || fbparams["in_canvas"] != nil)
+        return (params["fb_sig_in_iframe"] != nil || params["fb_sig_in_canvas"] != nil)
       end
-    
+      
+      def in_external_app?
+        return (!params[:fb_sig] and !in_facebook_frame?)
+      end
+          
       def handle_facebook_login
+        
+        puts params.inspect
 
         if (params["auth_token"] and !in_facebook_canvas?)
         
@@ -172,13 +183,17 @@ module RFacebook
           
             RAILS_DEFAULT_LOGGER.debug "** rfacebook: Session is not valid"
           
-            if in_facebook_canvas?
-              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering canvas redirect"
-              render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
-              return false
-            else
+            if in_external_app?
               RAILS_DEFAULT_LOGGER.debug "** rfacebook: Redirecting to login"
               redirect_to sess.get_login_url
+              return false
+            elsif (!fbparams or fbparams.size == 0)
+              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Failed to activate due to a bad API key or API secret"
+              render_text facebook_debug_panel
+              return false
+            else
+              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering canvas redirect"
+              render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
               return false
             end
           end
@@ -192,48 +207,66 @@ module RFacebook
           render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
         end
       end
+            
+      def self.included(base)
+
+        # FIXME: figure out why this is necessary...for some reason, we
+        #        can't just define url_for in the module itself (it never gets called)
+        base.class_eval '
       
-      # Thanks to Hoan Ton-That - method modified from original @ http://code.google.com/p/facebook-rails/
-      def url_for(options = {}, *params)
+          alias_method(:url_for__ALIASED, :url_for)
+      
+          def url_for(options={}, *params)
+            # check options
+            path = url_for__ALIASED(options, *params)
+            if in_facebook_canvas? #TODO: or in_facebook_frame?)
+              path = "#{path}/"
+              if path.starts_with?(self.facebook_callback_path)
+                path.gsub!(self.facebook_callback_path, self.facebook_canvas_path)
+                if !options.has_key?(:only_path)
+                  path = "http://apps.facebook.com#{path}"
+                end
+              end
+            end
+  
+            return path
+          end
         
-        # get a handle on some of our paths
-        callbackPath = self.facebook_callback_path
-        canvasPath = self.facebook_canvas_path
-        
-        # check options
-        if options.is_a?(String)
-          return options
-        elsif options.delete(:canvas) == false
-          return super(options, *params)
+        '
+      end
+      
+      def render_with_facebook_debug_panel(options={})
+        # oldLayout = options[:layout]
+        # options[:layout] = false
+        begin
+          renderedOutput = render_to_string(options)
+        rescue # TODO: don't catch-all here, just the exceptions that we originate
+          renderedOutput = "Errors prevented this page from rendering properly."
         end
+        # options[:text] = "#{facebook_debug_panel}#{renderedOutput}"
+        # options[:layout] = oldLayout
+        render_text "#{facebook_debug_panel}#{renderedOutput}"
+      end
       
-        # Get the path that Rails would normally generate
-        path = super(options.merge(:only_path => true), *params)
+      def facebook_debug_panel(options={})
+        return ERB.new(RFacebook::Rails::DEBUG_PANEL_ERB_TEMPLATE).result(Proc.new{})
+      end
       
-        # Rewrite it if it begins with our callback path (ex /fb)
-        if path.starts_with?(callbackPath)
-          # Remove the callback path: "/fb/path/to/x" becomes "path/to/x"
-          newpath = path[callbackPath.length+1..-1]
-      
-          # Done if we're not adding the canvas path
-          return newpath if options.delete(:only_path_no_prefix)
-      
-          # Append the canvas path: "path/to/x" becomes "/myapp/path/to/x"
-          newpath = "#{canvasPath}/#{newPath}"
-      
-          # Done if we're only getting the path
-          return newpath if options.delete(:only_path)
-      
-          # Append the facebook domain: "/myapp/path/to/x" becomes "http://apps.facebook.com/myapp/path/to/x"
-          newpath = "http://apps.facebook.com#{newpath}"
-          return newpath
-        else
-          raise StandardError, "#{path} does not begin with #{callbackPath}"
-        end
-        
+      def facebook_status_manager
+        checks = [
+          SessionStatusCheck.new(self),
+          (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
+          InCanvasStatusCheck.new(self),
+          InFrameStatusCheck.new(self),
+          (CanvasPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (CallbackPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (FinishFacebookLoginStatusCheck.new(self) unless (in_facebook_canvas? or in_facebook_frame?)),
+          APIKeyStatusCheck.new(self),
+          APISecretStatusCheck.new(self)
+          ].compact
+        return StatusManager.new(checks)
       end
 
-    
     end
   end
 end

@@ -89,6 +89,9 @@ class FacebookSession
     # cache object for API calls
     @callcache = {}
     
+    # default to XML formatted responses
+    # @response_format = "XML"
+    
   end
   
   def session_expired?
@@ -124,6 +127,14 @@ class FacebookSession
   def session_uid # deprecated
     return session_user_id
   end
+  
+  # def use_json
+  #   @response_format = "JSON"
+  # end
+  # 
+  # def use_xml
+  #   @response_format = "XML"
+  # end
   
   # SECTION: Protected Abstract Interface
   protected
@@ -192,6 +203,8 @@ class FacebookSession
       params = {}
     end
     params = params.dup # patch courtesy of Project Agape
+    
+    # params[:format] ||= @response_format
     params[:method] = "facebook.#{method}"
     params[:api_key] = @api_key
     params[:v] = "1.0"

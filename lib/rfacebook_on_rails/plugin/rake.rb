@@ -1,3 +1,32 @@
+# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+# 
+# Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+# 
+# Neither the name of the original author nor the names of contributors
+# may be used to endorse or promote products derived from this software
+# without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
 # Rake tasks modified from Evan Weaver's article
 # http://blog.evanweaver.com/articles/2007/07/13/developing-a-facebook-app-locally
 
@@ -5,34 +34,56 @@ namespace "facebook" do
 
   ######################################################################################
   ######################################################################################
-  desc "Copy a sample version of facebook.yml to your config directory."
-  task "setup_yaml" => "environment" do
+  desc "Sets up the RFacebook Rails Plugin.  Right now, this simply copies facebook.yml into your config directory."
+  task "setup" => "environment" do
     
-    filename = "#{RAILS_ROOT}/config/facebook.yml.example"
-    puts "Creating #{filename}."
-
+    filename = "#{RAILS_ROOT}/config/facebook.yml"
+    puts "======================================================"
+    puts "Setting up RFacebook on Rails Plugin"
+    
+    ###### Install sample facebook.yml
     file = File.new(filename, "w")
     file <<
-'
+"
 development:
     key: YOUR_API_KEY_HERE
     secret: YOUR_API_SECRET_HERE
+    canvas_path: /yourAppName/
+    callback_path: /path/to/your/callback/
     tunnel:
-		username: yourLoginName
-        host: www.yourexternaldomain.com
-        port: 1234
-        local_port: 5678
+      username: yourLoginName
+      host: www.yourexternaldomain.com
+      port: 1234
+      local_port: 5678
+
+test:
+    key: YOUR_API_KEY_HERE
+    secret: YOUR_API_SECRET_HERE
+    canvas_path: /yourAppName/
+    callback_path: /path/to/your/callback/
+    tunnel:
+      username: yourLoginName
+      host: www.yourexternaldomain.com
+      port: 1234
+      local_port: 5678
 
 production:
     key: YOUR_API_KEY_HERE
     secret: YOUR_API_SECRET_HERE
+    canvas_path: /yourAppName/
+    callback_path: /path/to/your/callback/
     tunnel:
-		username: yourLoginName
-        host: www.yourexternaldomain.com
-        port: 1234
-        local_port: 5678
-'
+      username: yourLoginName
+      host: www.yourexternaldomain.com
+      port: 1234
+      local_port: 5678
+"
     file.close_write
+    puts "  [1] Created config/facebook.yml <-- BE SURE TO CHANGE THE API KEY AND SECRET"
+    
+    ###### Finished
+    puts "Done."
+    puts "======================================================"
   end
   
   
@@ -40,10 +91,40 @@ production:
 
     ######################################################################################
     ######################################################################################
-    desc "Start a reverse tunnel from FACEBOOK['tunnel']['host'] to localhost"
+    desc "Start a reverse tunnel to develop from localhost. Please ensure that you have a properly configured config/facebook.yml file."
     task "start" => "environment" do
-      puts "Tunneling #{FACEBOOK['tunnel']['host']}:#{FACEBOOK['tunnel']['remote_port']} to 0.0.0.0:#{FACEBOOK['tunnel']['local_port']}"
-      exec "ssh -nNT -g -R *:#{FACEBOOK['tunnel']['remote_port']}:0.0.0.0:#{FACEBOOK['tunnel']['local_port']} #{FACEBOOK['tunnel']['host']}"
+      
+      remoteHost = FACEBOOK['tunnel']['host']
+      remotePort = FACEBOOK['tunnel']['port']
+      localPort = FACEBOOK['tunnel']['local_port']
+      
+      puts "======================================================"
+      puts "Tunneling #{remoteHost}:#{remotePort} to 0.0.0.0:#{localPort}"
+      
+      # TODO: learn more about autossh
+      # if system("autossh -V")
+      #   cmd = "autossh -M 8888"
+      #   puts "(autossh found, using port 8888 to monitor it)"
+      # else
+      #   cmd = "ssh"
+      #   puts "(autossh not found, using ssh instead)"
+      # end
+      cmd = "ssh"
+      
+      puts
+      puts "NOTES:"
+      puts "* ensure that you have Rails running on your local machine at port #{localPort}"
+      puts "* once logged in to the tunnel, you can visit http://#{remoteHost}:#{remotePort} to view your site"
+      puts "* use ctrl-c to quit the tunnel"
+      puts "* if you have problems with #{remoteHost} timing out your ssh connection, add the following lines to your '~/.ssh/config' file:"
+      puts "
+Host #{remoteHost}
+  ServerAliveInterval 120
+"
+      puts "======================================================"
+      exec "#{cmd} -nNT -g -R *:#{remotePort}:0.0.0.0:#{localPort} #{remoteHost}"
+      
+      
     end
     
     ######################################################################################
@@ -51,7 +132,7 @@ production:
     desc "Check if reverse tunnel is running"
     task "status" => "environment" do
       if `ssh #{FACEBOOK['tunnel']['host']} netstat -an | 
-          egrep "tcp.*:#{FACEBOOK['tunnel']['remote_port']}.*LISTEN" | wc`.to_i > 0
+          egrep "tcp.*:#{FACEBOOK['tunnel']['port']}.*LISTEN" | wc`.to_i > 0
         puts "Tunnel still running"
       else
         puts "Tunnel is down"
