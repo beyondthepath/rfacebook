@@ -122,7 +122,9 @@ module RFacebook
     
       # SECTION: Helpful Methods
     
+      # DEPRECATED
       def facebook_redirect_to(url)
+        RAILS_DEFAULT_LOGGER.info "DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook, redirect_to works like any Rails app since 0.8.2"
         if in_facebook_canvas?
           render :text => "<fb:redirect url=\"#{url}\" />"     
         elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i
@@ -146,8 +148,6 @@ module RFacebook
           
       def handle_facebook_login
         
-        puts params.inspect
-
         if (params["auth_token"] and !in_facebook_canvas?)
         
           # create a session
@@ -218,6 +218,7 @@ module RFacebook
       
           def url_for(options={}, *params)
             # check options
+            options[:only_path] = true
             path = url_for__ALIASED(options, *params)
             if in_facebook_canvas? #TODO: or in_facebook_frame?)
               path = "#{path}/"
@@ -230,6 +231,16 @@ module RFacebook
             end
   
             return path
+          end
+      
+          def redirect_to(options = {}, *parameters)
+            if in_facebook_canvas?
+              RAILS_DEFAULT_LOGGER.debug "** Canvas redirect to #{url_for(options)}"
+              render :text => "<fb:redirect url=\"#{url_for(options)}\" />"     
+            else
+              RAILS_DEFAULT_LOGGER.debug "** Regular redirect_to"
+              redirect_to(options, *parameters)
+            end
           end
         
         '

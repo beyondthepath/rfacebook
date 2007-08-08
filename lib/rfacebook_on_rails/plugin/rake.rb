@@ -94,6 +94,7 @@ production:
     desc "Start a reverse tunnel to develop from localhost. Please ensure that you have a properly configured config/facebook.yml file."
     task "start" => "environment" do
       
+      remoteUsername = FACEBOOK['tunnel']['username']
       remoteHost = FACEBOOK['tunnel']['host']
       remotePort = FACEBOOK['tunnel']['port']
       localPort = FACEBOOK['tunnel']['local_port']
@@ -122,7 +123,7 @@ Host #{remoteHost}
   ServerAliveInterval 120
 "
       puts "======================================================"
-      exec "#{cmd} -nNT -g -R *:#{remotePort}:0.0.0.0:#{localPort} #{remoteHost}"
+      exec "#{cmd} -nNT -g -R *:#{remotePort}:0.0.0.0:#{localPort} #{remoteUsername}@#{remoteHost}"
       
       
     end
@@ -131,7 +132,7 @@ Host #{remoteHost}
     ######################################################################################
     desc "Check if reverse tunnel is running"
     task "status" => "environment" do
-      if `ssh #{FACEBOOK['tunnel']['host']} netstat -an | 
+      if `ssh #{FACEBOOK['tunnel']['username']}@#{FACEBOOK['tunnel']['host']} netstat -an | 
           egrep "tcp.*:#{FACEBOOK['tunnel']['port']}.*LISTEN" | wc`.to_i > 0
         puts "Tunnel still running"
       else
