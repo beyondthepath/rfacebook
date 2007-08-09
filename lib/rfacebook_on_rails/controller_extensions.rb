@@ -107,6 +107,7 @@ module RFacebook
           if (facebookUid and facebookSessionKey and expirationTime)
             # Method 1: we have the user id and key from the fb_sig_ params
             @fbsession.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
+            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Activated session from inside the canvas"
           
           elsif (!in_facebook_canvas? and session[:rfacebook_fbsession])
             # Method 2: we've logged in the user already
@@ -114,6 +115,10 @@ module RFacebook
           
           end  
         
+        end
+        
+        if @fbsession
+          @fbsession.logger = RAILS_DEFAULT_LOGGER
         end
       
         return @fbsession
@@ -124,7 +129,7 @@ module RFacebook
     
       # DEPRECATED
       def facebook_redirect_to(url)
-        RAILS_DEFAULT_LOGGER.info "DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook, redirect_to works like any Rails app since 0.8.2"
+        RAILS_DEFAULT_LOGGER.info "DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook. Instead, you can use redirect_to like any Rails app."
         if in_facebook_canvas?
           render :text => "<fb:redirect url=\"#{url}\" />"     
         elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i
@@ -233,13 +238,16 @@ module RFacebook
             return path
           end
       
+          
+          alias_method(:redirect_to__ALIASED, :redirect_to)
+          
           def redirect_to(options = {}, *parameters)
             if in_facebook_canvas?
               RAILS_DEFAULT_LOGGER.debug "** Canvas redirect to #{url_for(options)}"
               render :text => "<fb:redirect url=\"#{url_for(options)}\" />"     
             else
               RAILS_DEFAULT_LOGGER.debug "** Regular redirect_to"
-              redirect_to(options, *parameters)
+              redirect_to__ALIASED(options, *parameters)
             end
           end
         
