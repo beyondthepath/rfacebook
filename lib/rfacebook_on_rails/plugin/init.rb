@@ -65,12 +65,28 @@ module RFacebook
   end
 end
 
+# load Facebook configuration file
 begin
   FACEBOOK = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")[RAILS_ENV]
 rescue
   FACEBOOK = {}
 end
 
+# make sure the paths have leading and trailing slashes
+def ensureLeadingAndTrailingSlashesForPath(path)
+  if !path.starts_with?("/")
+    path = "/#{path}"
+  end
+  if !path.reverse.starts_with?("/")
+    path = "#{path}/"
+  end
+  return path
+end
+
+FACEBOOK["canvas_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["canvas_path"])
+FACEBOOK["callback_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["callback_path"])
+
+# inject methods
 ActionView::Base.send(:include, RFacebook::Rails::ViewExtensions)
 ActionView::Base.send(:include, RFacebook::Rails::Plugin::ViewExtensions)
 

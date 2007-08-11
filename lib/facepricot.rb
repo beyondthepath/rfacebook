@@ -94,6 +94,14 @@ module RFacebook
     def hpricot
       return @doc
     end
+    
+    def response
+      return FacepricotChain.new(@doc.containers[0])
+    end
+    
+    def to_s
+      return @doc.containers[0].inner_html
+    end
         
   end
   

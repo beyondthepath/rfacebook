@@ -222,17 +222,22 @@ module RFacebook
           alias_method(:url_for__ALIASED, :url_for)
       
           def url_for(options={}, *params)
-            # check options
-            options[:only_path] = true
-            path = url_for__ALIASED(options, *params)
+            if !options
+              RAILS_DEFAULT_LOGGER.info "** options cannot be nil in call to url_for"
+            end
             if in_facebook_canvas? #TODO: or in_facebook_frame?)
-              path = "#{path}/"
+              if options.is_a? Hash
+                options[:only_path] = true
+              end
+              path = url_for__ALIASED(options, *params)
               if path.starts_with?(self.facebook_callback_path)
                 path.gsub!(self.facebook_callback_path, self.facebook_canvas_path)
                 if !options.has_key?(:only_path)
                   path = "http://apps.facebook.com#{path}"
                 end
               end
+            else
+              path = url_for__ALIASED(options, *params)
             end
   
             return path
