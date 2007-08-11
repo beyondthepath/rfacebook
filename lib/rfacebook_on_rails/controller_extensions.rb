@@ -67,7 +67,7 @@ module RFacebook
     
     
     
-      # SECTION: Required Methods
+      # SECTION: Special Variables
     
       def fbparams
       
@@ -75,13 +75,13 @@ module RFacebook
       
         # try to get fbparams from the params hash
         if (!@fbparams || @fbparams.length <= 0)
-          @fbparams = fbsession.get_fb_sig_params(dup_params)
+          @fbparams = rfacebook_session_holder.get_fb_sig_params(dup_params)
         end
       
         # else, try to get fbparams from the cookies hash
         # TODO: we don't write anything into the cookie, so this is kind of pointless right now
         if (@fbparams.length <= 0)
-          @fbparams = fbsession.get_fb_sig_params(cookies)
+          @fbparams = rfacebook_session_holder.get_fb_sig_params(cookies)
         end
         
         # TODO: fb_sig_params now includes all friend ids by default, so we can avoid an API call to friends.get
@@ -90,38 +90,30 @@ module RFacebook
         return @fbparams
       
       end
-
-      def fbsession
       
-        if !@fbsession
+      def fbsession
         
-          # create a session no matter what
-          @fbsession = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
-        
+        # if we are in the canvas or iframe, we should be able to activate the session here
+        if (!rfacebook_session_holder.is_valid? and (in_facebook_canvas? or in_facebook_frame?))
+                  
           # then try to activate it somehow (or retrieve from previous state)
           # these might be nil
           facebookUid = fbparams["user"]
           facebookSessionKey = fbparams["session_key"]
           expirationTime = fbparams["expires"]
-        
-          if (facebookUid and facebookSessionKey and expirationTime)
-            # Method 1: we have the user id and key from the fb_sig_ params
-            @fbsession.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Activated session from inside the canvas"
-          
-          elsif (!in_facebook_canvas? and session[:rfacebook_fbsession])
-            # Method 2: we've logged in the user already
-            @fbsession = session[:rfacebook_fbsession]
-          
-          end  
-        
-        end
-        
-        if @fbsession
-          @fbsession.logger = RAILS_DEFAULT_LOGGER
-        end
       
-        return @fbsession
+          if (facebookUid and facebookSessionKey and expirationTime)
+            # we have the user id and key from the fb_sig_ params, activate the session
+            rfacebook_session_holder.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Activated session from inside the canvas"
+          else
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Tried to activate session from inside the canvas, but failed"
+          end
+                      
+        end
+        
+        # if all went well, we should definitely have a valid Facebook session object
+        return rfacebook_session_holder
       
       end
     
@@ -144,31 +136,50 @@ module RFacebook
       end
         
       def in_facebook_frame?
-        return (params["fb_sig_in_iframe"] != nil || params["fb_sig_in_canvas"] != nil)
+        return (params["fb_sig_in_iframe"] != nil or params["fb_sig_in_canvas"] != nil)
       end
       
       def in_external_app?
         return (!params[:fb_sig] and !in_facebook_frame?)
       end
+      
+      # SECTION: before_filters
           
       def handle_facebook_login
-        
-        if (params["auth_token"] and !in_facebook_canvas?)
-        
-          # create a session
-          session[:rfacebook_fbsession] = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
-          session[:rfacebook_fbsession].activate_with_token(params["auth_token"])
-        
-          # template method call upon success
-          if session[:rfacebook_fbsession].is_valid?
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Login was successful, calling finish_facebook_login"
-            finish_facebook_login
+                
+        if (!in_facebook_canvas? and !rfacebook_session_holder.is_valid?)            
+            
+          if params["auth_token"]
+            
+            # activate with the auth token
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: creating a new Facebook session from auth_token"
+            rfacebook_session_holder.activate_with_token(params["auth_token"])
+              
+            # template method call upon success
+            if rfacebook_session_holder.is_valid?
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Login was successful, calling finish_facebook_login"
+              if in_external_app?
+                finish_facebook_login
+              end
+            end
+            
+          elsif (session[:rfacebook_session] and session[:rfacebook_session].is_valid?)
+            
+            # grab saved Facebook session from Rails session
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: grabbing Facebook session from Rails session"
+            @rfacebook_session_holder = session[:rfacebook_session]
+          
           end
         
-        else
-          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Didn't activate session from handle_facebook_login"
+          # warning logs
+          if !rfacebook_session_holder.is_valid?
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Facebook session could not be activated (from handle_facebook_login)"
+          elsif params["auth_token"]
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: received a new auth_token, but we already have a valid session (ignored new auth_token)"
+          end
+            
         end
-      
+        
       end
     
       def require_facebook_login
@@ -176,10 +187,9 @@ module RFacebook
         # handle a facebook login if given (external sites and iframe only)
         handle_facebook_login
       
+        # now finish it off depending on whether we are in canvas, iframe, or external app
         if !performed?
-        
-          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Rendering has not been performed"
-        
+                
           # try to get the session
           sess = fbsession
       
@@ -189,17 +199,23 @@ module RFacebook
             RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Session is not valid"
           
             if in_external_app?
-              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Redirecting to login"
+              
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Redirecting to login for external app"
               redirect_to sess.get_login_url
               return false
+              
             elsif (!fbparams or fbparams.size == 0)
+              
               RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Failed to activate due to a bad API key or API secret"
               render_text facebook_debug_panel
               return false
+              
             else
-              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Rendering canvas redirect"
+              
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Redirecting to login for canvas app"
               render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
               return false
+              
             end
           end
         end
@@ -212,6 +228,64 @@ module RFacebook
           render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
         end
       end
+      
+      # SECTION: Facebook Debug Panel
+      
+      def render_with_facebook_debug_panel(options={})
+        # oldLayout = options[:layout]
+        # options[:layout] = false
+        begin
+          renderedOutput = render_to_string(options)
+        rescue # TODO: don't catch-all here, just the exceptions that we originate
+          renderedOutput = "Errors prevented this page from rendering properly."
+        end
+        # options[:text] = "#{facebook_debug_panel}#{renderedOutput}"
+        # options[:layout] = oldLayout
+        render_text "#{facebook_debug_panel}#{renderedOutput}"
+      end
+      
+      def facebook_debug_panel(options={})
+        return ERB.new(RFacebook::Rails::DEBUG_PANEL_ERB_TEMPLATE).result(Proc.new{})
+      end
+      
+      def facebook_status_manager
+        checks = [
+          SessionStatusCheck.new(self),
+          (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
+          InCanvasStatusCheck.new(self),
+          InFrameStatusCheck.new(self),
+          (CanvasPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (CallbackPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (FinishFacebookLoginStatusCheck.new(self) unless (in_facebook_canvas? or in_facebook_frame?)),
+          APIKeyStatusCheck.new(self),
+          APISecretStatusCheck.new(self)
+          ].compact
+        return StatusManager.new(checks)
+      end
+      
+      # SECTION: Private Methods
+      
+      def rfacebook_session_holder
+        
+        if (@rfacebook_session_holder == nil)
+          @rfacebook_session_holder = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
+          @rfacebook_session_holder.logger = RAILS_DEFAULT_LOGGER
+        end
+        
+        return @rfacebook_session_holder
+        
+      end
+            
+      def rfacebook_persist_session_to_rails
+        if (!in_facebook_canvas? and rfacebook_session_holder.is_valid?)
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: persisting Facebook session information into Rails session"
+          session[:rfacebook_session] = @rfacebook_session_holder.dup
+          session[:rfacebook_session].logger = nil # pstore can't serialize the Rails logger
+        end
+      end
+      
+      
+      # SECTION: URL Management 
       
       CLASSES_EXTENDED = []
             
@@ -271,42 +345,14 @@ module RFacebook
                 redirect_to__ALIASED(options, *parameters)
               end
             end
-        
           '
+          
+          # ensure that we persist the Facebook session in the Rails session (if possible)
+          base.after_filter(:rfacebook_persist_session_to_rails)
+          
         end
       end
-      
-      def render_with_facebook_debug_panel(options={})
-        # oldLayout = options[:layout]
-        # options[:layout] = false
-        begin
-          renderedOutput = render_to_string(options)
-        rescue # TODO: don't catch-all here, just the exceptions that we originate
-          renderedOutput = "Errors prevented this page from rendering properly."
-        end
-        # options[:text] = "#{facebook_debug_panel}#{renderedOutput}"
-        # options[:layout] = oldLayout
-        render_text "#{facebook_debug_panel}#{renderedOutput}"
-      end
-      
-      def facebook_debug_panel(options={})
-        return ERB.new(RFacebook::Rails::DEBUG_PANEL_ERB_TEMPLATE).result(Proc.new{})
-      end
-      
-      def facebook_status_manager
-        checks = [
-          SessionStatusCheck.new(self),
-          (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
-          InCanvasStatusCheck.new(self),
-          InFrameStatusCheck.new(self),
-          (CanvasPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
-          (CallbackPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
-          (FinishFacebookLoginStatusCheck.new(self) unless (in_facebook_canvas? or in_facebook_frame?)),
-          APIKeyStatusCheck.new(self),
-          APISecretStatusCheck.new(self)
-          ].compact
-        return StatusManager.new(checks)
-      end
+
 
     end
   end
