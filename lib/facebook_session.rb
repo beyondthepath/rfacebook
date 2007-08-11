@@ -166,7 +166,7 @@ class FacebookSession
   
   def cached_call_method(method,params)
     key = cache_key_for(method,params)
-    @logger.debug "** RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
+    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
     return @callcache[key] ||= call_method(method,params)
   end
   
@@ -191,7 +191,7 @@ class FacebookSession
   #   use_ssl             - set to true if the call will be made over SSL
   def call_method(method, params={}, use_ssl=false)
 
-    @logger.debug "** RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call" if @logger
+    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call" if @logger
 
     # ensure that this object has been activated somehow
     if (!method.include?("auth") and !is_activated?)
@@ -225,13 +225,13 @@ class FacebookSession
     
     # do the request
     xmlstring = post_request(@api_server_base_url, @api_server_path, method, params, use_ssl)
-    # @logger.debug "** RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - raw XML response: #{xmlstring}" if @logger
+    # @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - raw XML response: #{xmlstring}" if @logger
     xml = Facepricot.new(xmlstring)
 
     # error checking    
     if xml.at("error_response")
       
-      @logger.debug "** RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed" if @logger
+      @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed" if @logger
       
       @last_call_was_successful = false
       code = xml.at("error_code").inner_html

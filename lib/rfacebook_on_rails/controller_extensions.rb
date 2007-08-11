@@ -107,7 +107,7 @@ module RFacebook
           if (facebookUid and facebookSessionKey and expirationTime)
             # Method 1: we have the user id and key from the fb_sig_ params
             @fbsession.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
-            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Activated session from inside the canvas"
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Activated session from inside the canvas"
           
           elsif (!in_facebook_canvas? and session[:rfacebook_fbsession])
             # Method 2: we've logged in the user already
@@ -129,7 +129,7 @@ module RFacebook
     
       # DEPRECATED
       def facebook_redirect_to(url)
-        RAILS_DEFAULT_LOGGER.info "DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook. Instead, you can use redirect_to like any Rails app."
+        RAILS_DEFAULT_LOGGER.info "** RFACEBOOK DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook. Instead, you can use redirect_to like any Rails app."
         if in_facebook_canvas?
           render :text => "<fb:redirect url=\"#{url}\" />"     
         elsif url =~ /^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i
@@ -161,12 +161,12 @@ module RFacebook
         
           # template method call upon success
           if session[:rfacebook_fbsession].is_valid?
-            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Login was successful, calling finish_facebook_login"
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Login was successful, calling finish_facebook_login"
             finish_facebook_login
           end
         
         else
-          RAILS_DEFAULT_LOGGER.debug "** rfacebook: Didn't activate session from handle_facebook_login"
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Didn't activate session from handle_facebook_login"
         end
       
       end
@@ -178,7 +178,7 @@ module RFacebook
       
         if !performed?
         
-          RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering has not been performed"
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Rendering has not been performed"
         
           # try to get the session
           sess = fbsession
@@ -186,18 +186,18 @@ module RFacebook
           # handle invalid sessions by forcing the user to log in      
           if !sess.is_valid?
           
-            RAILS_DEFAULT_LOGGER.debug "** rfacebook: Session is not valid"
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Session is not valid"
           
             if in_external_app?
-              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Redirecting to login"
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Redirecting to login"
               redirect_to sess.get_login_url
               return false
             elsif (!fbparams or fbparams.size == 0)
-              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Failed to activate due to a bad API key or API secret"
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Failed to activate due to a bad API key or API secret"
               render_text facebook_debug_panel
               return false
             else
-              RAILS_DEFAULT_LOGGER.debug "** rfacebook: Rendering canvas redirect"
+              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Rendering canvas redirect"
               render :text => "<fb:redirect url=\"#{sess.get_login_url(:canvas=>true)}\" />"
               return false
             end
@@ -212,51 +212,68 @@ module RFacebook
           render :text => "<fb:redirect url=\"#{sess.get_install_url}\" />"
         end
       end
+      
+      CLASSES_EXTENDED = []
             
       def self.included(base)
-
-        # FIXME: figure out why this is necessary...for some reason, we
-        #        can't just define url_for in the module itself (it never gets called)
-        base.class_eval '
-      
-          alias_method(:url_for__ALIASED, :url_for)
-      
-          def url_for(options={}, *params)
-            if !options
-              RAILS_DEFAULT_LOGGER.info "** options cannot be nil in call to url_for"
-            end
-            if in_facebook_canvas? #TODO: or in_facebook_frame?)
-              if options.is_a? Hash
-                options[:only_path] = true
-              end
-              path = url_for__ALIASED(options, *params)
-              if path.starts_with?(self.facebook_callback_path)
-                path.gsub!(self.facebook_callback_path, self.facebook_canvas_path)
-                if !options.has_key?(:only_path)
-                  path = "http://apps.facebook.com#{path}"
-                end
-              end
-            else
-              path = url_for__ALIASED(options, *params)
-            end
-  
-            return path
-          end
-      
-          
-          alias_method(:redirect_to__ALIASED, :redirect_to)
-          
-          def redirect_to(options = {}, *parameters)
-            if in_facebook_canvas?
-              RAILS_DEFAULT_LOGGER.debug "** Canvas redirect to #{url_for(options)}"
-              render :text => "<fb:redirect url=\"#{url_for(options)}\" />"     
-            else
-              RAILS_DEFAULT_LOGGER.debug "** Regular redirect_to"
-              redirect_to__ALIASED(options, *parameters)
-            end
-          end
         
-        '
+        # check for a double include
+        doubleInclude = false
+        CLASSES_EXTENDED.each do |klass|
+          if base.allocate.is_a?(klass) # TODO: is there a more direct way than allocating an instance and checking is_a?
+            doubleInclude = true
+          end
+        end
+        
+        if doubleInclude
+          RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: detected double-include of RFacebook controller extensions.  Please see instructions for RFacebook on Rails plugin usage (http://rfacebook.rubyforge.org).  You may be including the deprecated RFacebook::RailsControllerExtensions in addition to the plugin."
+          
+        else
+          CLASSES_EXTENDED << base
+          
+          # we need to use an eval since we will be overriding ActionController::Base methods
+          # and we need to be able to call the originals
+          base.class_eval '
+      
+            alias_method(:url_for__ALIASED, :url_for)
+      
+            def url_for(options={}, *parameters)
+              if !options
+                RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: options cannot be nil in call to url_for"
+              end
+              if in_facebook_canvas? #TODO: or in_facebook_frame?)
+                if options.is_a? Hash
+                  options[:only_path] = true
+                end
+                path = url_for__ALIASED(options, *parameters)
+                if path.starts_with?(self.facebook_callback_path)
+                  path.gsub!(self.facebook_callback_path, self.facebook_canvas_path)
+                  if !options.has_key?(:only_path)
+                    path = "http://apps.facebook.com#{path}"
+                  end
+                end
+              else
+                path = url_for__ALIASED(options, *parameters)
+              end
+  
+              return path
+            end
+      
+          
+            alias_method(:redirect_to__ALIASED, :redirect_to)
+          
+            def redirect_to(options = {}, *parameters)
+              if in_facebook_canvas?
+                RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{url_for(options)}"
+                render :text => "<fb:redirect url=\"#{url_for(options)}\" />"     
+              else
+                RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
+                redirect_to__ALIASED(options, *parameters)
+              end
+            end
+        
+          '
+        end
       end
       
       def render_with_facebook_debug_panel(options={})

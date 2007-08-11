@@ -95,4 +95,3 @@ ActionController::Base.send(:include, RFacebook::Rails::Plugin::ControllerExtens
 
 ActiveRecord::Base.send(:include, RFacebook::Rails::ModelExtensions)
 ActiveRecord::Base.send(:include, RFacebook::Rails::Plugin::ModelExtensions)
-
