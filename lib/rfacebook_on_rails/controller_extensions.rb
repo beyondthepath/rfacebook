@@ -93,8 +93,8 @@ module RFacebook
       
       def fbsession
         
-        # if we are in the canvas or iframe, we should be able to activate the session here
-        if (!rfacebook_session_holder.is_valid? and (in_facebook_canvas? or in_facebook_frame?))
+        # if we are in the canvas, iframe, or mock ajax, we should be able to activate the session here
+        if (!rfacebook_session_holder.is_valid? and (in_facebook_canvas? or in_facebook_frame? or in_mock_ajax?))
                   
           # then try to activate it somehow (or retrieve from previous state)
           # these might be nil
@@ -139,6 +139,10 @@ module RFacebook
         return (params["fb_sig_in_iframe"] != nil or params["fb_sig_in_canvas"] != nil)
       end
       
+      def in_mock_ajax?
+        return (params["fb_mockajax_url"] != nil)
+      end
+      
       def in_external_app?
         return (!params[:fb_sig] and !in_facebook_frame?)
       end
@@ -168,6 +172,7 @@ module RFacebook
             # grab saved Facebook session from Rails session
             RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: grabbing Facebook session from Rails session"
             @rfacebook_session_holder = session[:rfacebook_session]
+            @rfacebook_session_holder.logger = RAILS_DEFAULT_LOGGER
           
           end
         
@@ -175,6 +180,8 @@ module RFacebook
           if !rfacebook_session_holder.is_valid?
             RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Facebook session could not be activated (from handle_facebook_login)"
           elsif params["auth_token"]
+            # TODO: ignoring is proper when we have already used the auth_token (we could try to reauth and swallow the exception)
+            #         however, we probably want to re-auth if the new auth_token is valid (new user, old user probably logged out)
             RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: received a new auth_token, but we already have a valid session (ignored new auth_token)"
           end
             
@@ -245,7 +252,7 @@ module RFacebook
       end
       
       def facebook_debug_panel(options={})
-        return ERB.new(RFacebook::Rails::DEBUG_PANEL_ERB_TEMPLATE).result(Proc.new{})
+        return ERB.new(RFacebook::Rails::DEBUG_PANEL_ERB_TEMPLATE).result(Proc.new{}) # TODO: should use File.dirname(__FILE__) + 'templates/debug_panel.rhtml' instead
       end
       
       def facebook_status_manager
@@ -312,20 +319,38 @@ module RFacebook
             alias_method(:url_for__ALIASED, :url_for)
       
             def url_for(options={}, *parameters)
+              
+              # error check
               if !options
                 RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: options cannot be nil in call to url_for"
               end
-              if in_facebook_canvas? #TODO: or in_facebook_frame?)
+              
+              # use special URL rewriting when inside the canvas
+              # setting the mock_ajax option to true will override this
+              # and force usage of regular Rails rewriting
+              if (in_facebook_canvas? and !options[:mock_ajax]) #TODO: or in_facebook_frame?
+                
                 if options.is_a? Hash
                   options[:only_path] = true
                 end
+                
+                # try to get a regular URL
                 path = url_for__ALIASED(options, *parameters)
+                path += "/"
+                                
+                # replace anything that references the callback with the
+                # Facebook canvas equivalent (apps.facebook.com/*)
                 if path.starts_with?(self.facebook_callback_path)
-                  path.gsub!(self.facebook_callback_path, self.facebook_canvas_path)
-                  if !options.has_key?(:only_path)
-                    path = "http://apps.facebook.com#{path}"
-                  end
+                  path.sub!(self.facebook_callback_path, self.facebook_canvas_path)
+                  path = "http://apps.facebook.com#{path}"
+                else
+                  # default to a full URL (will link externally)
+                  RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to get canvas-friendly URL ("+path+") for ["+options.inspect+"], creating an external URL instead"
+                  options[:only_path] = false
+                  path = url_for__ALIASED(options, *parameters)
                 end
+              
+              # regular Rails rewriting
               else
                 path = url_for__ALIASED(options, *parameters)
               end
@@ -338,8 +363,9 @@ module RFacebook
           
             def redirect_to(options = {}, *parameters)
               if in_facebook_canvas?
-                RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{url_for(options)}"
-                render :text => "<fb:redirect url=\"#{url_for(options)}\" />"     
+                canvasRedirUrl = url_for(options, *parameters)
+                RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{canvasRedirUrl}"
+                render :text => "<fb:redirect url=\"#{canvasRedirUrl}\" />"     
               else
                 RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
                 redirect_to__ALIASED(options, *parameters)
@@ -349,6 +375,9 @@ module RFacebook
           
           # ensure that we persist the Facebook session in the Rails session (if possible)
           base.after_filter(:rfacebook_persist_session_to_rails)
+          
+          # fix third party cookies in IE
+          base.before_filter{ |c| c.headers['P3P'] = %|CP="NOI DSP COR NID ADMa OPTa OUR NOR"| }
           
         end
       end

@@ -110,7 +110,8 @@ module RFacebook
     include FacepricotChaining
 
     def initialize(hpricotDoc)
-      super(hpricotDoc.inner_html)
+      # TODO: does this fix the Hpricot HTML entity escaping problem?
+      super(hpricotDoc.inner_html.gsub("&amp;", "&"))
       @doc = hpricotDoc
     end
     
