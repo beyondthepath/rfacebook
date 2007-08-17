@@ -39,6 +39,10 @@ module RFacebook
         @controller.in_facebook_frame?
       end
       
+      def in_mock_ajax?
+        @controller.in_mock_ajax?
+      end
+      
       def fbparams
         @controller.fbparams
       end

@@ -336,19 +336,23 @@ module RFacebook
                 
                 # try to get a regular URL
                 path = url_for__ALIASED(options, *parameters)
-                path += "/"
                                 
                 # replace anything that references the callback with the
                 # Facebook canvas equivalent (apps.facebook.com/*)
-                if path.starts_with?(self.facebook_callback_path)
+                if (path.starts_with?(self.facebook_callback_path) or "#{path}/".starts_with?(self.facebook_callback_path))
                   path.sub!(self.facebook_callback_path, self.facebook_canvas_path)
                   path = "http://apps.facebook.com#{path}"
                 else
                   # default to a full URL (will link externally)
                   RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to get canvas-friendly URL ("+path+") for ["+options.inspect+"], creating an external URL instead"
-                  options[:only_path] = false
-                  path = url_for__ALIASED(options, *parameters)
+                  path = "#{request.protocol}#{request.host}:#{request.port}#{path}"
                 end
+              
+              # mock-ajax rewriting
+              elsif options[:mock_ajax]
+                options.delete(:mock_ajax) # clear it so it doesnt show up in the url
+                options[:only_path] = true
+                path = "#{request.protocol}#{request.host}:#{request.port}#{url_for__ALIASED(options, *parameters)}"
               
               # regular Rails rewriting
               else
@@ -363,9 +367,18 @@ module RFacebook
           
             def redirect_to(options = {}, *parameters)
               if in_facebook_canvas?
+                
                 canvasRedirUrl = url_for(options, *parameters)
+                
+                # ensure that we come back to the canvas if we redirect
+                # to somewhere else on Facebook
+                if canvasRedirUrl.starts_with?("http://www.facebook.com")
+                  canvasRedirUrl = "#{canvasRedirUrl}&canvas"
+                end
+                
                 RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{canvasRedirUrl}"
-                render :text => "<fb:redirect url=\"#{canvasRedirUrl}\" />"     
+                render :text => "<fb:redirect url=\"#{canvasRedirUrl}\" />"
+                
               else
                 RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
                 redirect_to__ALIASED(options, *parameters)

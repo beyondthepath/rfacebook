@@ -40,25 +40,25 @@ module RFacebook
       #####
       module ControllerExtensions
         def facebook_api_key
-          FACEBOOK["key"]
+          FACEBOOK["key"] || super
         end
         def facebook_api_secret
-          FACEBOOK["secret"]
+          FACEBOOK["secret"] || super
         end
         def facebook_canvas_path
-          FACEBOOK["canvas_path"]
+          FACEBOOK["canvas_path"] || super
         end
         def facebook_callback_path
-          FACEBOOK["callback_path"]
+          FACEBOOK["callback_path"] || super
         end
       end  
       #####
       module ModelExtensions
         def facebook_api_key
-          FACEBOOK["key"]
+          FACEBOOK["key"] || super
         end
         def facebook_api_secret
-          FACEBOOK["secret"]
+          FACEBOOK["secret"] || super
         end
       end
       #####
@@ -85,14 +85,14 @@ def ensureLeadingAndTrailingSlashesForPath(path)
     if !path.reverse.starts_with?("/")
       path = "#{path}/"
     end
-    return path
+    return path.strip
   else
     return nil
   end
 end
 
-FACEBOOK["canvas_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["canvas_path"]).strip
-FACEBOOK["callback_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["callback_path"]).strip
+FACEBOOK["canvas_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["canvas_path"])
+FACEBOOK["callback_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["callback_path"])
 
 # inject methods
 ActionView::Base.send(:include, RFacebook::Rails::ViewExtensions)
