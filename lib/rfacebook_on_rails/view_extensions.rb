@@ -59,8 +59,8 @@ module RFacebook
         return path
       end
 
-      def rfacebook_debug_panel(options={})
-        return @controller.rfacebook_debug_panel(options)
+      def facebook_debug_panel(options={})
+        return @controller.facebook_debug_panel(options)
       end
       
     end
