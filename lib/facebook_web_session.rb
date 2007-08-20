@@ -153,8 +153,8 @@ class FacebookWebSession < FacebookSession
     #   key    - the session key to use
     def activate_with_previous_session(key, uid=nil, expires=nil)
       
-      # TODO: what is a good way to handle expiration?
-      #       low priority since the API will give an error code for me...
+      # set the expiration
+      @session_expires = expires
       
       # set the session key
       @session_key = key

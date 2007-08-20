@@ -101,17 +101,7 @@ production:
       
       puts "======================================================"
       puts "Tunneling #{remoteHost}:#{remotePort} to 0.0.0.0:#{localPort}"
-      
-      # TODO: learn more about autossh
-      # if system("autossh -V")
-      #   cmd = "autossh -M 8888"
-      #   puts "(autossh found, using port 8888 to monitor it)"
-      # else
-      #   cmd = "ssh"
-      #   puts "(autossh not found, using ssh instead)"
-      # end
-      cmd = "ssh"
-      
+            
       puts
       puts "NOTES:"
       puts "* ensure that you have Rails running on your local machine at port #{localPort}"
@@ -119,19 +109,17 @@ production:
       puts "* use ctrl-c to quit the tunnel"
       puts "* if you have problems creating the tunnel, you may need to add the following to /etc/ssh/sshd_config on your server:"
       puts "
-
 GatewayPorts clientspecified
 
 "
       puts "* if you have problems with #{remoteHost} timing out your ssh connection, add the following lines to your '~/.ssh/config' file:"
       puts "
-
 Host #{remoteHost}
   ServerAliveInterval 120
 
 "
       puts "======================================================"
-      exec "#{cmd} -nNT -g -R *:#{remotePort}:0.0.0.0:#{localPort} #{remoteUsername}@#{remoteHost}"
+      exec "ssh -nNT -g -R *:#{remotePort}:0.0.0.0:#{localPort} #{remoteUsername}@#{remoteHost}"
       
       
     end

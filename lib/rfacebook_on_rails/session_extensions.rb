@@ -30,21 +30,20 @@
 require "digest/md5"
 require "cgi"
 
-# patch up the CGI session module to use Facebook session keys when cookies aren't available
-class CGI::Session
-
-  alias :initialize__ALIASED :initialize
-  alias :new_session__ALIASED :new_session
+module RFacebook::Rails::SessionExtensions
   
-  def using_facebook_session_id?
-    return (@fb_sig_session_id != nil)
-  end
-  
+  # SECTION: New Methods
   def force_to_be_new!
     @force_to_be_new = true
   end
   
-  def new_session
+  def using_facebook_session_id?
+    return (@fb_sig_session_id != nil)
+  end
+    
+  # SECTION: Base Overrides
+  
+  def new_session__RFACEBOOK
     if @force_to_be_new
       return true
     else
@@ -52,81 +51,152 @@ class CGI::Session
     end
   end
 
-  def initialize(request, options = {})
+  def initialize__RFACEBOOK(request, options = {})
     
-    @fb_sig_session_id = nil
-    
-    # first check the environment to find a Facebook sig_session_key (credit: Blake Carlson and David Troy)
-    if !@fb_sig_session_id
-      begin
-        envTable = request.send(:env_table) || request.send(:env)
-        ["RAW_POST_DATA", "QUERY_STRING"].each do |tableSource|
-          if envTable[tableSource]
-            @fb_sig_session_id = CGI::parse(envTable[tableSource]).fetch('fb_sig_session_key'){[]}.first
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: checked env_table.#{tableSource} for Facebook session id and got [#{@fb_sig_session_id}]"
-          end
-          break if @fb_sig_session_id
-        end
-      rescue
-        RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: Couldn't check env_table for some reason"
+    # only try to use the sig when we don't have a cookie (i.e., in the canvas)
+    if in_facebook_canvas?(request)
+      
+      # try a few different ways
+      RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Attempting to use fb_sig_session_key as a session key, since we are inside the canvas"
+      @fb_sig_session_id = lookup_request_parameter(request, "fb_sig_session_key")
+      
+      # we only want to change the session_id if we got one from the fb_sig
+      if @fb_sig_session_id
+        options["session_id"] = Digest::MD5.hexdigest(@fb_sig_session_id)
+        RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: using MD5 of fb_sig_session_key [#{options['session_id']}] for the Rails session id"
       end
-    end
-    
-    # if that fails (since it was accessing internals that may have changed), check the request.parameters instead
-    # Depending on the user's version of Rails, this may fail due to a bug in Rails parsing of
-    # nil keys: http://dev.rubyonrails.org/ticket/5137
-    if !@fb_sig_session_id
-      begin
-        @fb_sig_session_id = request.parameters['fb_sig_session_key']
-        RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: checked request.parameters for Facebook session id and got [#{@fb_sig_session_id}]"
-      rescue Exception => e
-        RAILS_DEFAULT_LOGGER.debug e.backtrace
-        RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: Couldn't check request.parameters for some reason"
-      end
-    end
-  
-    # we only want to change the session_id if we got one from the fb_sig
-    if @fb_sig_session_id
-      options['session_id'] = Digest::MD5.hexdigest(@fb_sig_session_id)
-      RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: using MD5 of Facebook session id [#{options['session_id']}] for the Rails session id}"
     end
     
     # now call the default Rails session initialization
     initialize__ALIASED(request, options)
   end
+  
+  # SECTION: Extension Helpers
+  
+  def self.included(base)
+    base.class_eval'
+      alias :initialize__ALIASED :initialize
+      alias :initialize :initialize__RFACEBOOK
+      
+      alias :new_session__ALIASED :new_session
+      alias :new_session :new_session__RFACEBOOK
+    '
+  end
+  
+  # SECTION: Private Helpers
+  
+  private
+  
+  # TODO: it seems that there should be a better way to just get raw parameters
+  #       (not sure why the nil key bug doesn't seem to be fixed in my installation)
+  #       ...also, there seems to be some interaction with Mongrel as well that can
+  #       cause the parameters to fail
+  def lookup_request_parameter(request, key)
+    
+    # Depending on the user's version of Rails, this may fail due to a bug in Rails parsing of
+    # nil keys: http://dev.rubyonrails.org/ticket/5137, so we have a backup plan
+    begin
+      
+      # this should work on most Rails installations
+      return request.parameters[key]
+      
+    rescue
+      
+      # this saves most other Rails installations
+      begin
+        
+        retval = nil
+        
+        # try accessing raw_post (doesn't work in some mongrel installations)
+        if request.respond_to?(:raw_post)
+          return CGI::parse(request.send(:raw_post)).fetch(key){[]}.first
+        end
+        
+        # try accessing the raw environment table
+        if !retval
+          envTable = nil
+      
+          envTable = request.send(:env_table) if request.respond_to?(:env_table)
+          if !envTable
+            envTable = request.send(:env) if request.respond_to?(:env)
+          end
+      
+          if envTable
+            # credit: Blake Carlson and David Troy
+            ["RAW_POST_DATA", "QUERY_STRING"].each do |tableSource|
+              if envTable[tableSource]
+                retval = CGI::parse(envTable[tableSource]).fetch(key){[]}.first
+              end
+              break if retval
+            end
+          end
+        end
+        
+        # hopefully we got a parameter
+        return retval
+        
+      rescue
+        
+        # for some reason, we just can't get the parameters
+        RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: failed to access request.parameters"
+        return nil
+
+      end
+    end
+  end
+  
+  def in_facebook_canvas?(request)
+    # TODO: we should probably be checking the fb_sig for validity here (template method needed)
+    #       ...we can only do this if we can grab the equivalent of a params hash
+    return lookup_request_parameter(request, "fb_sig_in_canvas")
+  end
+    
 end
 
 # Module: SessionStoreExtensions
 #
-#   Special initialize method that forces any session store to use the Facebook session
+#   Special initialize method that attempts to force any session store to use the Facebook session
 module RFacebook::Rails::SessionStoreExtensions
+  
+  # SECTION: Base Overrides
+  
   def initialize__RFACEBOOK(session, options, *extraParams)
     
     if session.using_facebook_session_id?
       
       # we got the fb_sig_session_key, so alter Rails' behavior to use that key to make a session
       begin
-        RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: inside #{self.class.to_s}, with session_id: #{session.session_id}, new_session = #{session.new_session ? 'yes' : 'no'}"
+        RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: using fb_sig_session_key for the #{self.class.to_s} session (session_id=#{session.session_id})"
         initialize__ALIASED(session, options, *extraParams)
       rescue Exception => e 
         begin
-          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to init #{self.class.to_s} session, trying to make a new session"
-          # FIXME: technically this might be a security problem, since an external browser can grab any unused session id they want
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to initialize session (session_id=#{session.session_id}), trying to force a new session"
           if session.session_id
             session.force_to_be_new!
           end
           initialize__ALIASED(session, options, *extraParams)
         rescue Exception => e
-          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to create a new #{self.class.to_s} session falling back to default Rails behavior"
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to force a new session, falling back to default Rails behavior"
           raise e
         end
       end
+      
     else
       
-      # we didn't get the fb_sig_session_key, so don't alter Rails' behavior
+      # we didn't get the fb_sig_session_key, do not alter Rails' behavior
       RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: using default Rails sessions (since we didn't find an fb_sig_session_key in the environment)"
       initialize__ALIASED(session, options, *extraParams)
       
     end
   end
+  
+  # SECTION: Extension Helpers
+  
+  def self.included(base)
+    base.class_eval'
+      alias :initialize__ALIASED :initialize
+      alias :initialize :initialize__RFACEBOOK
+    '
+  end
+  
 end

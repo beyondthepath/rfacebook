@@ -81,6 +81,7 @@ module RFacebook
     
     def initialize(xml)
       @doc = Hpricot.XML(xml)
+      @raw_xml = xml
     end
     
     def method_missing(methodSymbol, *params)
@@ -99,6 +100,10 @@ module RFacebook
       return FacepricotChain.new(@doc.containers[0])
     end
     
+    def raw_xml
+      return @raw_xml
+    end
+    
     def to_s
       return @doc.containers[0].inner_html
     end
@@ -110,7 +115,6 @@ module RFacebook
     include FacepricotChaining
 
     def initialize(hpricotDoc)
-      # TODO: does this fix the Hpricot HTML entity escaping problem?
       super(hpricotDoc.inner_html.gsub("&amp;", "&"))
       @doc = hpricotDoc
     end

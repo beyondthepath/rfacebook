@@ -32,49 +32,84 @@ require "rfacebook_on_rails/controller_extensions"
 require "rfacebook_on_rails/model_extensions"
 require "rfacebook_on_rails/session_extensions"
 
-module RFacebook
-  module Rails
-    module Plugin
-      #####
-      module ControllerExtensions
-        def facebook_api_key
-          FACEBOOK["key"] || super
-        end
-        def facebook_api_secret
-          FACEBOOK["secret"] || super
-        end
-        def facebook_canvas_path
-          FACEBOOK["canvas_path"] || super
-        end
-        def facebook_callback_path
-          FACEBOOK["callback_path"] || super
-        end
-      end  
-      #####
-      module ModelExtensions
-        def facebook_api_key
-          FACEBOOK["key"] || super
-        end
-        def facebook_api_secret
-          FACEBOOK["secret"] || super
-        end
-      end
-      #####
-      module ViewExtensions
-      end
+module RFacebook::Rails::Plugin
+  
+  module ControllerExtensions
+    def facebook_api_key
+      FACEBOOK["key"] || super
+    end
+    def facebook_api_secret
+      FACEBOOK["secret"] || super
+    end
+    def facebook_canvas_path
+      FACEBOOK["canvas_path"] || super
+    end
+    def facebook_callback_path
+      FACEBOOK["callback_path"] || super
+    end
+  end  
+
+  module ModelExtensions
+    def facebook_api_key
+      FACEBOOK["key"] || super
+    end
+    def facebook_api_secret
+      FACEBOOK["secret"] || super
     end
   end
+
+  module ViewExtensions
+  end
+  
 end
 
-# load Facebook configuration file
+# inject methods to Rails MVC classes
+ActionView::Base.send(:include, RFacebook::Rails::ViewExtensions)
+ActionView::Base.send(:include, RFacebook::Rails::Plugin::ViewExtensions)
+
+ActionController::Base.send(:include, RFacebook::Rails::ControllerExtensions)
+ActionController::Base.send(:include, RFacebook::Rails::Plugin::ControllerExtensions)
+
+ActiveRecord::Base.send(:include, RFacebook::Rails::ModelExtensions)
+ActiveRecord::Base.send(:include, RFacebook::Rails::Plugin::ModelExtensions)
+
+# inject methods to Rails session management classes
+CGI::Session.send(:include, RFacebook::Rails::SessionExtensions)
+
+# TODO: document SessionStoreExtensions as API so that anyone can patch their own custom session container in addition to these
+CGI::Session::PStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+CGI::Session::ActiveRecordStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+CGI::Session::DRbStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+CGI::Session::FileStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+CGI::Session::MemoryStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+begin
+  CGI::Session::MemCacheStore.send(:include, RFacebook::Rails::SessionStoreExtensions)
+rescue
+  RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: It looks like you don't have memcache-client, so MemCacheStore was not extended"
+end
+
+# load Facebook configuration file (credit: Evan Weaver)
 begin
   FACEBOOK = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")[RAILS_ENV]
 rescue
   FACEBOOK = {}
 end
 
+# parse for full URLs in facebook.yml (multiple people have made this mistake)
+def ensureRelativePath(path)
+  if matchData = /(\w+)(\:\/\/)([\w0-9\.]+)([\:0-9]*)(.*)/.match(path)
+    relativePath = matchData.captures[4]
+    RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: It looks like you used a full URL (#{path}) in facebook.yml.  RFacebook expected a relative path and has automatically converted this URL to #{relativePath}."
+    return relativePath
+  else
+    return path
+  end
+end
+
+FACEBOOK["canvas_path"] = ensureRelativePath(FACEBOOK["canvas_path"])
+FACEBOOK["callback_path"] = ensureRelativePath(FACEBOOK["callback_path"])
+
 # make sure the paths have leading and trailing slashes
-# TODO: also parse for full URLs beginning with HTTP (see: http://rubyforge.org/tracker/index.php?func=detail&aid=13096&group_id=3607&atid=13796)
 def ensureLeadingAndTrailingSlashesForPath(path)
   if (path and path.size>0)
     if !path.starts_with?("/")
@@ -91,37 +126,3 @@ end
 
 FACEBOOK["canvas_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["canvas_path"])
 FACEBOOK["callback_path"] = ensureLeadingAndTrailingSlashesForPath(FACEBOOK["callback_path"])
-
-# inject methods to Rails MVC classes
-ActionView::Base.send(:include, RFacebook::Rails::ViewExtensions)
-ActionView::Base.send(:include, RFacebook::Rails::Plugin::ViewExtensions)
-
-ActionController::Base.send(:include, RFacebook::Rails::ControllerExtensions)
-ActionController::Base.send(:include, RFacebook::Rails::Plugin::ControllerExtensions)
-
-ActiveRecord::Base.send(:include, RFacebook::Rails::ModelExtensions)
-ActiveRecord::Base.send(:include, RFacebook::Rails::Plugin::ModelExtensions)
-
-# inject methods to patch Rails session containers
-# TODO: document this as API so that everyone knows how to patch their own custom session container
-module RFacebook::Rails::Toolbox
-  def self.patch_session_store_class(sessionStoreKlass)
-    sessionStoreKlass.send(:include, RFacebook::Rails::SessionStoreExtensions)
-    sessionStoreKlass.class_eval'
-      alias :initialize__ALIASED :initialize
-      alias :initialize :initialize__RFACEBOOK
-    '
-  end
-end
-
-# patch as many session stores as possible
-RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::PStore)
-RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::ActiveRecordStore)
-RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::DRbStore)
-RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::FileStore)
-RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::MemoryStore)
-begin
-  RFacebook::Rails::Toolbox::patch_session_store_class(CGI::Session::MemCacheStore)
-rescue
-  # TODO: this needs to be handled better
-end
