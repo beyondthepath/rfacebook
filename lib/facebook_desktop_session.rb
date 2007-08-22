@@ -32,10 +32,35 @@ require "facebook_session"
 module RFacebook
 
 class FacebookDesktopSession < FacebookSession
+
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Properties
+  ################################################################################################
   
-  # you'll need to access session_secret (in addition to the session_key) to be able to
-  # call "activate_with_previous_session" when using infinite sessions
-  attr_reader :session_secret
+  attr_reader :session_secret # you should need this for infinite desktop sessions
+  
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Initialization
+  ################################################################################################
+  
+  # Function: initialize
+  #   Constructs a FacebookDesktopSession.  Also calls the API to grab an auth_token.
+  #
+  # Parameters:
+  #   api_key                       - your API key
+  #   api_secret                    - your API secret
+  #   options.suppress_exceptions   - boolean, set to true if you don't want exceptions to be thrown (defaults to false)
+  def initialize(api_key, api_secret, suppress_exceptions = false)
+    super(api_key, api_secret, suppress_exceptions)
+    @desktop_auth_token = get_auth_token
+  end
+  
+  ################################################################################################
+  ################################################################################################
+  # SECTION: URL Accessors
+  ################################################################################################
   
   # Function: get_login_url
   #   Gets the authentication URL
@@ -62,22 +87,20 @@ class FacebookDesktopSession < FacebookSession
     return "http://#{WWW_SERVER_BASE_URL}#{WWW_PATH_LOGIN}?v=1.0&api_key=#{@api_key}&auth_token=#{@desktop_auth_token}#{optionalPopup}#{optionalNext}#{optionalSkipCookie}#{optionalHideCheckbox}"
   end
   
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Session Activation
+  ################################################################################################
   
-  # Function: initialize
-  #   Constructs a FacebookSession
-  #
-  # Parameters:
-  #   api_key                       - your API key
-  #   api_secret                    - your API secret
-  #   desktop                       - boolean, whether this is a desktop client or not (defaults to false)
-  #   options.suppress_exceptions   - boolean, set to true if you don't want exceptions to be thrown (defaults to false)
-  def initialize(api_key, api_secret, suppress_exceptions = false)
-    super(api_key, api_secret, suppress_exceptions)
-    @desktop_auth_token = get_auth_token
-  end
-  
+  # Function: activate
+  #   Use the internal auth_token to activate
   def activate
-    activate_with_token(@desktop_auth_token)
+    result = call_method("auth.getSession", {:auth_token => @desktop_auth_token}, true)
+    if result != nil
+      @session_user_id = result.at("uid").inner_html
+      @session_key = result.at("session_key").inner_html
+      @session_secret = result.at("secret").inner_html
+    end
   end
   
   # Function: activate_with_previous_session
@@ -85,6 +108,7 @@ class FacebookDesktopSession < FacebookSession
   # 
   # Parameters:
   #   key    - the session key to use
+  #   secret - the session secret to use
   def activate_with_previous_session(key, secret)
     # set the session key and secret
     @session_key = key
@@ -95,38 +119,7 @@ class FacebookDesktopSession < FacebookSession
     @session_user_id = result.at("users_getLoggedInUser_response").inner_html
   end
   
-  def is_valid?
-    return (is_activated? and !session_expired?)
-  end
-  
-  def session_user_id
-    return @session_user_id
-  end
-  
-  def session_key
-    return @session_key
-  end
-  
   protected
-  
-  def is_activated?
-    return (@session_key != nil and @session_secret != nil)
-  end
-  
-  # Function: activate_with_token
-  #   Gets the session information available after current user logs in.
-  # 
-  # Parameters:
-  #   auth_token    - string token returned by auth.createToken (see: <get_auth_token>)
-  def activate_with_token(auth_token)
-    result = call_method("auth.getSession", {:auth_token => auth_token}, true)
-    if result != nil
-      @session_user_id = result.at("uid").inner_html
-      @session_key = result.at("session_key").inner_html
-      @session_secret = result.at("secret").inner_html
-    end
-    return result
-  end
   
   # Function: auth_createToken
   #   Returns a string auth_token
@@ -136,8 +129,22 @@ class FacebookDesktopSession < FacebookSession
     return result
   end
   
+  
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Template Methods
+  ################################################################################################
+    
+  # Function: is_activated?
+  #   Returns true when we have activated ourselves somehow
+  def is_activated?
+    return (@session_key != nil and @session_secret != nil)
+  end
+  
   # Function: get_secret
-  #   Template method, used by super::signature to generate a signature
+  #   Used by super::signature to generate a signature.
+  #   Desktop sessions should use their session_secret rather than the api_secret
+  #   for any calls other than the call to createToken and getSession
   def get_secret(params)
     
     if ( params[:method] != "facebook.auth.getSession" and params[:method] != "facebook.auth.createToken")

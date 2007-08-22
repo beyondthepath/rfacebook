@@ -49,106 +49,113 @@ WWW_PATH_INSTALL          = "/install.php"
 
 class FacebookSession
   
-  # error handling accessors
-  attr_reader :last_call_was_successful, :last_error
-  attr_writer :suppress_exceptions
-  
-  # SECTION: StandardErrors
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Errors
+  ################################################################################################
     
   class RemoteStandardError < StandardError; end
   class ExpiredSessionStandardError < StandardError; end
   class NotActivatedStandardError < StandardError; end
+    
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Properties
+  ################################################################################################
   
-  # SECTION: Public Methods  
+  # Property: session_user_id
+  #   The user id of the user associated with this sesssion.
+  attr_reader :session_user_id
+  
+  # Property: session_key
+  #   The key for this session. You will need to save this for infinite sessions.
+  attr_reader :session_key
+  
+  # Property: session_expires
+  #   The expiration time of this session, as given from Facebook API login.
+  attr_reader :session_expires
+  
+  # Property: last_error_message
+  #   Contains a string message of the last error received from Facebook.
+  attr_reader :last_error_message
+  
+  # Property: last_error_code
+  #   Contains an integer code of the last error received from Facebook.
+  attr_reader :last_error_code
+  
+  # Property: suppress_errors
+  #   By default, RFacebook will throw exceptions when errors occur.
+  #   You can set suppress_errors=true to stop these exceptions
+  #   from being thrown.
+  attr_accessor :suppress_errors
+  
+  # Property: logger
+  #   Can be set to any valid logger (for example, RAIL_DEFAULT_LOGGER)
+  attr_accessor :logger
+  
+  # Function: is_activated?
+  #   Returns true when the session has been activated in some way
+  #   THIS IS AN ABSTRACT METHOD (the value is determined differently for Web and Desktop sessions)
+  def is_activated?
+    raise StandardError
+  end
+  
+  # Function: session_expired?
+  #   Returns true when the session has expired
+  def session_expired?
+    return (@session_expired == true)
+  end
+  
+  # Function: is_valid?
+  #   Returns true when the session is definitely prepared to make API calls
+  def is_valid?
+    return (is_activated? and !session_expired?)
+  end
+  
+  # Function: is_ready?
+  #   alias for is_valid?
+  def is_ready?
+    return (is_activated? and !session_expired?)
+  end
+  
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Initialization
+  ################################################################################################
   
   # Function: initialize
   #   Constructs a FacebookSession
   #
   # Parameters:
-  #   api_key                       - your API key
-  #   api_secret                    - your API secret
-  #   suppress_exceptions           - boolean, set to true if you don't want exceptions to be thrown (defaults to false)
-  def initialize(api_key, api_secret, suppress_exceptions = false)
+  #   api_key           - your API key
+  #   api_secret        - your API secret
+  #   suppress_errors   - boolean, set to true if you don't want exceptions to be thrown (defaults to false)
+  #
+  def initialize(api_key, api_secret, suppress_errors = false)
     
     # required parameters
     @api_key = api_key
     @api_secret = api_secret
-    
-    # calculated parameters
-    @api_server_base_url = API_SERVER_BASE_URL
-    @api_server_path = API_PATH_REST
         
     # optional parameters
-    @suppress_exceptions = suppress_exceptions
+    @suppress_errors = suppress_errors
     
     # initialize internal state
-    @last_call_was_successful = true
-    @last_error = nil
+    @last_error_message = nil
+    @last_error_code = nil
     @session_expired = false
     
     # cache object for API calls
     @callcache = {}
-    
-    # default to XML formatted responses
-    # @response_format = "XML"
-    
+        
   end
-  
-  def session_expired?
-    return (@session_expired == true)
-  end
-  
-  def logger
-    return @logger
-  end
-  
-  def logger=(externalLogger)
-    @logger = externalLogger
-  end
-
-  # SECTION: Public Abstract Interface
-
-  def is_valid?
-    raise StandardError
-  end
-  
-  def session_key
-    raise StandardError
-  end
-  
-  def session_user_id
-    raise StandardError
-  end
-  
-  def session_expires
-    raise StandardError
-  end
-  
-  def session_uid # deprecated
-    return session_user_id
-  end
-  
-  # def use_json
-  #   @response_format = "JSON"
-  # end
-  # 
-  # def use_xml
-  #   @response_format = "XML"
-  # end
-  
-  # SECTION: Protected Abstract Interface
+      
+  ################################################################################################
+  ################################################################################################
+  # SECTION: API Calls
+  ################################################################################################
   protected
-  
-  def get_secret(params)
-    raise StandardError
-  end
-  
-  def is_activated?
-    raise StandardError
-  end
-  
-  # SECTION: Protected Concrete Interface
-  
+    
   # Function: method_missing
   #   This allows *any* Facebook method to be called, using the Ruby
   #   mechanism for responding to unimplemented methods.  Basically,
@@ -162,23 +169,6 @@ class FacebookSession
     else
       return call_method(tokens.join("."), params.first)
     end
-  end
-  
-  def cached_call_method(method,params)
-    key = cache_key_for(method,params)
-    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
-    return @callcache[key] ||= call_method(method,params)
-  end
-  
-  def cache_key_for(method,params)
-    pairs = []
-    params.each do |k,v|
-      if v.is_a?(Array)
-        v = v.join(",")
-      end
-      pairs << "#{k}=#{v}"
-    end
-    return "#{method}(#{pairs.sort.join("...")})".to_sym
   end
 
   
@@ -220,12 +210,17 @@ class FacebookSession
     # set up the param_signature value in the params
     params[:sig] = param_signature(params)
     
-    # prepare internal state
-    @last_call_was_successful = true
+    # get a server handle
+    port = (use_ssl == true) ? 443 : 80
+    http_server = Net::HTTP.new(API_SERVER_BASE_URL, port)
+    http_server.use_ssl = use_ssl
     
-    # do the request
-    xmlstring = post_request(@api_server_base_url, @api_server_path, method, params, use_ssl)
-    # @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - raw XML response: #{xmlstring}" if @logger
+    # build a request
+    http_request = Net::HTTP::Post.new(API_PATH_REST)
+    http_request.form_data = params
+    
+    # get the response XML
+    xmlstring = http_server.start{|http| http.request(http_request)}.body
     xml = Facepricot.new(xmlstring)
 
     # error checking    
@@ -233,20 +228,19 @@ class FacebookSession
       
       @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed" if @logger
       
-      @last_call_was_successful = false
-      code = xml.at("error_code").inner_html
+      code = xml.at("error_code").inner_html.to_i
       msg = xml.at("error_msg").inner_html
-      @last_error = "ERROR #{code}: #{msg} (#{method.inspect}, #{params.inspect})"
+      @last_error_message = "ERROR #{code}: #{msg} (#{method.inspect}, #{params.inspect})"
       @last_error_code = code
       
       # check to see if this error was an expired session error
-      if code.to_i == 102
+      if code == 102
         @session_expired = true
-        raise ExpiredSessionStandardError, @last_error unless @suppress_exceptions == true
+        raise ExpiredSessionStandardError, @last_error_message unless @suppress_errors == true
       end
       
       # otherwise, just throw a generic expired session
-      raise RemoteStandardError, @last_error unless @suppress_exceptions == true
+      raise RemoteStandardError, @last_error_message unless @suppress_errors == true
       
       return nil
     end
@@ -254,42 +248,76 @@ class FacebookSession
     return xml
   end
   
-  
-  private
-  
-  # SECTION: Private Concrete Interface
-  
-  # Function: post_request
-  #   Does a post to the given server/path, using the params as formdata
+  # Function: cached_call_method
+  #   Does the same thing as call_method, except that the response is cached for
+  #   the lifetime of the FacebookSession.
   #
   # Parameters:
-  #   api_server_base_url         - i.e. "api.facebook.com"
-  #   api_server_path             - i.e. "/restserver.php"
-  #   method                      - i.e. "facebook.users.getInfo"
-  #   params                      - hash of key/value pairs that get sent as form data to the server
-  #   use_ssl                     - set to true if you want to use SSL for this request
-  def post_request(api_server_base_url, api_server_path, method, params, use_ssl)
-    # get a server handle
-    port = (use_ssl == true) ? 443 : 80
-    http_server = Net::HTTP.new(@api_server_base_url, port)
-    http_server.use_ssl = use_ssl
-    
-    # build a request
-    http_request = Net::HTTP::Post.new(@api_server_path)
-    http_request.form_data = params
-    response = http_server.start{|http| http.request(http_request)}.body
-    
-    # return the text of the body
-    return response
+  #   method              - i.e. "users.getInfo"
+  #   params              - hash of key,value pairs for the parameters to this method
+  #   use_ssl             - set to true if the call will be made over SSL
+  def cached_call_method(method,params={},use_ssl=false)
+    key = cache_key_for(method,params)
+    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
+    return @callcache[key] ||= call_method(method,params,use_ssl)
   end
   
+  # Function: cache_key_for
+  #   Key to use for cached method calls.
+  #
+  # Parameters:
+  #   method      - the API method being cached
+  #   params      - a Hash of the parameters being sent to the API
+  #
+  def cache_key_for(method,params)
+    pairs = []
+    params.each do |k,v|
+      if v.is_a?(Array)
+        v = v.join(",")
+      end
+      pairs << "#{k}=#{v}"
+    end
+    return "#{method}(#{pairs.sort.join("...")})".to_sym
+  end
+  
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Signature Generation
+  ################################################################################################
+
+  # Function: get_secret
+  #   Returns the proper secret to sign a set of parameters with.
+  #   A WebSession will always use the api_secret, but a DesktopSession
+  #   sometimes needs to use a session_secret.
+  #
+  #   THIS IS AN ABSTRACT METHOD
+  #
+  # Parameters:
+  #   params    - a Hash containing the parameters to sign
+  #
+  def get_secret(params)
+    raise StandardError
+  end
+    
   # Function: param_signature
   #   Generates a param_signature for a call to the API, per the spec on Facebook
   #   see: <http://developers.facebook.com/documentation.php?v=1.0&doc=auth>
+  #
+  # Parameters:
+  #   params    - a Hash containing the parameters to sign
+  #
   def param_signature(params)    
     return generate_signature(params, get_secret(params));
   end
   
+  # Function: generate_signature
+  #   Generates a Facebook signature.  Used for generating API calls, as well
+  #   as for checking the signature from a Canvas page
+  #
+  # Parameters:
+  #   hash    - a Hash containing the parameters to sign
+  #   secret  - the API or session secret to use to sign the parameters
+  #
   def generate_signature(hash, secret)
     args = []
     hash.each do |k,v|
@@ -299,6 +327,33 @@ class FacebookSession
     requestStr = sortedArray.join("")
     return Digest::MD5.hexdigest("#{requestStr}#{secret}")
   end
+
+  ################################################################################################
+  ################################################################################################
+  # SECTION: Deprecated Methods
+  ################################################################################################
+  public
+  
+  def session_uid
+    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_uid is deprecated in favor of fbsession.session_user_id" if @logger
+    return self.session_user_id
+  end
+  
+  def last_error
+    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.last_error is deprecated in favor of fbsession.last_error_message" if @logger
+    return self.last_error_message
+  end
+  
+  def suppress_exceptions
+    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
+    return self.suppress_errors
+  end
+  
+  def suppress_exceptions=(value)
+    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
+    self.suppress_errors = value
+  end
+
 
 end
 

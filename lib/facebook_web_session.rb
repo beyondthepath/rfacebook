@@ -31,30 +31,19 @@ require "facebook_session"
 
 module RFacebook
 
-class FacebookWebSession < FacebookSession
-  
-    # SECTION: Properties
+  class FacebookWebSession < FacebookSession
     
-    def session_key
-      return @session_key
-    end
-  
-    def session_user_id
-      return @session_uid
-    end
-  
-    def session_expires
-      return @session_expires
-    end
-    
-    # SECTION: URL Getters
+    ################################################################################################
+    ################################################################################################
+    # SECTION: URL Accessors
+    ################################################################################################
     
     # Function: get_login_url
     #   Gets the authentication URL
     #
     # Parameters:
     #   options.next          - the page to redirect to after login
-    #   options.popup         - boolean, whether or not to use the popup style (defaults to true)
+    #   options.popup         - boolean, whether or not to use the popup style (defaults to false)
     #   options.skipcookie    - boolean, whether to force new Facebook login (defaults to false)
     #   options.hidecheckbox  - boolean, whether to show the "infinite session" option checkbox
     def get_login_url(options={})
@@ -80,6 +69,11 @@ class FacebookWebSession < FacebookSession
     
     end
     
+    # Function: get_install_url
+    #   Gets the installation URL for this application
+    #
+    # Parameters:
+    #   options.next          - the page to redirect to after installation
     def get_install_url(options={})
     
       # handle options
@@ -93,44 +87,10 @@ class FacebookWebSession < FacebookSession
     
     end
   
-
-    # SECTION: Callback Verification Helpers
-    
-    def get_fb_sig_params(originalParams)
-            
-      # setup
-      timeout = 48*3600
-      namespace = "fb_sig"
-      prefix = "#{namespace}_"
-      
-      # get the params prefixed by "fb_sig_" (and remove the prefix)
-      sigParams = {}
-      originalParams.each do |k,v|
-        oldLen = k.length
-        newK = k.sub(prefix, "")
-        if oldLen != newK.length
-          sigParams[newK] = v
-        end
-      end
-      
-      # handle invalidation
-      if (timeout and (sigParams["time"].nil? or (Time.now.to_i - sigParams["time"].to_i > timeout.to_i)))
-        # invalidate if the timeout has been reached
-        sigParams = {}
-      end
-      
-      if !sig_params_valid?(sigParams, originalParams[namespace])
-        # invalidate if the signatures don't match
-        sigParams = {}
-      end
-      
-      return sigParams
-      
-    end
-  
-  
-  
+    ################################################################################################
+    ################################################################################################
     # SECTION: Session Activation
+    ################################################################################################
   
     # Function: activate_with_token
     #   Gets the session information available after current user logs in.
@@ -140,7 +100,7 @@ class FacebookWebSession < FacebookSession
     def activate_with_token(auth_token)
       result = call_method("auth.getSession", {:auth_token => auth_token})
       if result != nil
-        @session_uid = result.at("uid").inner_html
+        @session_user_id = result.at("uid").inner_html
         @session_key = result.at("session_key").inner_html
         @session_expires = result.at("expires").inner_html
       end
@@ -161,42 +121,76 @@ class FacebookWebSession < FacebookSession
     
       # determine the current user's id
       if uid
-        @session_uid = uid
+        @session_user_id = uid
       else
         result = call_method("users.getLoggedInUser")
-        @session_uid = result.at("users_getLoggedInUser_response").inner_html
+        @session_user_id = result.at("users_getLoggedInUser_response").inner_html
       end
       
     end
-  
-    def is_valid?
-      return (is_activated? and !session_expired?)
+    
+    ################################################################################################
+    ################################################################################################
+    # SECTION: Canvas Signature Validation
+    ################################################################################################
+    
+    # Function: get_fb_sig_params
+    #   Returns the fb_sig params from Hash that has all request params
+    #
+    # Parameters:
+    #   originalParams - a Hash that contains the fb_sig_* params (i.e. Rails params)
+    #
+    def get_fb_sig_params(originalParams)
+            
+      # setup
+      timeout = 48*3600
+      prefix = "fb_sig_"
+      
+      # get the params prefixed by "fb_sig_" (and remove the prefix)
+      sigParams = {}
+      originalParams.each do |k,v|
+        oldLen = k.length
+        newK = k.sub(prefix, "")
+        if oldLen != newK.length
+          sigParams[newK] = v
+        end
+      end
+      
+      # handle invalidation
+      if (timeout and (sigParams["time"].nil? or (Time.now.to_i - sigParams["time"].to_i > timeout.to_i)))
+        # invalidate if the timeout has been reached
+        sigParams = {}
+      end
+      
+      # check that the signatures match
+      expectedSig = originalParams["fb_sig"]
+      if !(sigParams and expectedSig and generate_signature(sigParams, @api_secret) == expectedSig)
+        # didn't match, empty out the params
+        sigParams = {}
+      end
+      
+      return sigParams
+      
     end
   
-  
-  
-  
-  
-  
-    # SECTION: Protected methods
-    protected
-  
+    ################################################################################################
+    ################################################################################################
+    # SECTION: Template Methods
+    ################################################################################################
+    
+    # Function: is_activated?
+    #   Returns true when we have activated ourselves somehow
     def is_activated?
       return (@session_key != nil)
     end
   
     # Function: get_secret
-    #   Template method, used by super::signature to generate a signature
+    #   Used by super::signature to generate a signature
+    #   Web sessions simply use their API secret.
     def get_secret(params)
       return @api_secret
     end
-    
-    def sig_params_valid?(sigParams, expectedSig)
-      return (sigParams and expectedSig and generate_signature(sigParams, @api_secret) == expectedSig)
-    end
   
   end
-
-
-
+  
 end
