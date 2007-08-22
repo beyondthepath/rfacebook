@@ -35,7 +35,7 @@ module RFacebook
     
     ################################################################################################
     ################################################################################################
-    # SECTION: URL Accessors
+    # :section: URL Accessors
     ################################################################################################
     
     # Function: get_login_url
@@ -89,7 +89,7 @@ module RFacebook
   
     ################################################################################################
     ################################################################################################
-    # SECTION: Session Activation
+    # :section: Session Activation
     ################################################################################################
   
     # Function: activate_with_token
@@ -131,11 +131,12 @@ module RFacebook
     
     ################################################################################################
     ################################################################################################
-    # SECTION: Canvas Signature Validation
+    # :section: Canvas Signature Validation
     ################################################################################################
     
     # Function: get_fb_sig_params
-    #   Returns the fb_sig params from Hash that has all request params
+    #   Returns the fb_sig params from Hash that has all request params.  Hash is empty if the
+    #   signature was invalid.
     #
     # Parameters:
     #   originalParams - a Hash that contains the fb_sig_* params (i.e. Rails params)
@@ -175,7 +176,7 @@ module RFacebook
   
     ################################################################################################
     ################################################################################################
-    # SECTION: Template Methods
+    # :section: Template Methods
     ################################################################################################
     
     # Function: is_activated?
@@ -187,7 +188,7 @@ module RFacebook
     # Function: get_secret
     #   Used by super::signature to generate a signature
     #   Web sessions simply use their API secret.
-    def get_secret(params)
+    def get_secret(params) # :nodoc:
       return @api_secret
     end
   

@@ -1,0 +1,138 @@
+
+body
+	{
+		margin: 0px;
+		padding: 0px;
+		width: 100%;
+		background: #ddd;
+		font-family: Lucida Grande, Arial, sans-serif;
+	}
+
+#Header
+	{
+		width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+		background: #3B5998;
+	}
+
+#Header img
+	{
+		border: 0px;
+		margin-left: auto;
+		margin-right: auto;
+		padding: 0px;
+	}
+
+#Body
+	{
+		width: 650px;
+		margin-left: auto;
+		margin-right: auto;
+		font-size: 84%;
+	}
+
+p,
+pre
+	{
+		margin-left: 0px;
+	}
+
+
+
+h1
+	{
+		font-size: 1.7em;
+		color: #AF0000;
+	}
+
+h2
+	{
+		font-size: 1.4em;
+		font-weight: bolder;
+	}
+
+a
+	{
+		color: #3B5998;
+		text-decoration: none;
+		margin-bottom: -3px;
+		border-bottom: 1px solid #999;
+		font-weight: bold;
+	}
+
+.backToMain
+	{
+		padding-top: 10px;
+	}
+
+.commandlineWrapper
+	{
+		margin: 0px;
+		padding: 0px;
+		overflow: hidden;
+		border-right: 3px dotted #999;
+	}
+
+.commandlineWrapper:hover
+	{
+		border: none;
+		overflow: visible;
+	}
+
+.commandline
+	{
+		/*border: 1px solid #aaa;*/
+		background: black;
+		color: white;
+		padding: 10px;
+		margin: 0px 0px 0px 0px;
+
+		width: 800px;
+		font-family: monospace;
+	}
+
+#Footer
+	{
+		margin-top: 45px;
+		font-size: 0.8em;
+		color: #888;
+		padding: 5px;
+		border-top: 1px solid #aaa;
+		font-style: italic;
+	}
+
+.facebookPreview
+	{
+		padding: 15px;
+		background: white;
+	}
+
+#CurrentVersionBox
+	{
+		display: block;
+		float: right;
+		
+		padding: 20px;
+		margin: 15px;
+		
+		background: #3B5998;
+		color: white;
+		text-align: center;
+	}
+
+#CurrentVersionBox .message
+	{
+		color: #D8DFE3;
+	}
+
+#CurrentVersionBox .number
+	{
+		font-size: 2.5em;
+	}
+	
+.comment
+	{
+		color: #999;
+		font-style: italic;
+	}

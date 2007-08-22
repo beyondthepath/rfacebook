@@ -90,8 +90,13 @@ end
 
 # load Facebook configuration file (credit: Evan Weaver)
 begin
-  FACEBOOK = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")[RAILS_ENV]
-rescue
+  yamlFile = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")
+  if yamlFile
+    FACEBOOK = yamlFile[RAILS_ENV] || {}
+  else
+    FACEBOOK = {}
+  end
+rescue Exception => e
   FACEBOOK = {}
 end
 

@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="description" content="RFacebook: the Ruby Facebook API client" />
+	<meta name="keywords" content="Facebook, Ruby, Rails, Facebook API, RFacebook" />
+	<meta name="verify-v1" content="FlqRW8FzW0mJ1WeWbb4O9vpa0vzG/vcPOnTl/ADqLxQ=" />
+	<title>rfacebook - quick start guide - facebook api for ruby and rails</title>
+	<link rel="stylesheet" href="main.css" type="text/css" />
+</head>
+<body>
+
+<div id="PageWrapper">
+	
+	<div id="Header" align="center">
+		<a href="index.html">
+			<img src="images/logo.jpg" />
+		</a>
+	</div>
+
+	<div id="Body">
+		
+		
+		<div class="backToMain">
+			<a href="index.html">back to main page</a>
+		</div>
+		
+		<h1>RFacebook Quick Start Guide for Rails</h1>
+		
+		<h2>1. Install the gem and plugin</h2>
+		<p>From the commandline, type:</p>
+
+
+<div class="commandlineWrapper">
+<pre class="commandline">
+$ gem install rfacebook
+</pre>
+</div>
+		
+		<p>
+			This will install the latest RFacebook library (make sure it is <strong>version 0.8.0 or better</strong>).
+			Now, we want to install the plugin as well. From your Rails directory, type:
+		</p>
+		
+<div class="commandlineWrapper">
+<pre class="commandline">
+$ script/plugin install svn://rubyforge.org/var/svn/rfacebook/plugins/rfacebook_on_rails
+</pre>
+</div>
+		
+		<p>
+			This will install the RFacebook on Rails plugin.
+			If you have trouble getting that to work, then just download the plugin
+			<a href="http://rubyforge.org/frs/download.php/23679/rfacebook_on_rails.zip">here</a>
+			and unzip it into <strong>vendor/plugins/rfacebook_on_rails</strong>.
+		</p>
+
+		<h2>2. Configure facebook.yml</h2>
+		<p>
+			Now that you have everything installed, you need to set up your <strong>facebook.yml</strong>
+			configuration.  From your Rails directory, type:
+		</p>
+		
+<div class="commandlineWrapper">
+<pre class="commandline">
+$ rake facebook:setup
+</pre>
+</div>
+		
+		<p>
+			This will create <strong>config/facebook.yml</strong>.  Just open the file and <strong>paste in</strong> your own
+			API key and API secret.  You can ignore the <a href="tunnel.html">tunnel</a> configuration for now, but
+			later on you should check it out.
+		</p>
+
+
+		<h2>3. Use the new features in your controllers and views</h2>
+		<p>
+			First, you'll probably want to require the user to login or install your application. 
+			You can use the RFacebook <strong>before_filters</strong> to do that (<strong>require_facebook_login</strong> and <strong>require_facebook_install</strong>):
+		</p>
+
+<div class="commandlineWrapper">
+<pre class="commandline">
+before_filter :require_facebook_login
+</pre>
+</div>
+		<p>
+			Second, your controllers and views have a new variable, <strong>fbsession</strong>, which represents the current
+			user's Facebook session.  You can call <em>any</em> Facebook API method using this session.
+			The example below calls <a href="http://developers.facebook.com/documentation.php?v=1.0&method=users.getInfo">facebook.users.getInfo</a>.
+		</p>
+
+<div class="commandlineWrapper">
+<pre class="commandline">
+# make Facebook call
+useridA = 1234
+useridB = 9876
+response = fbsession.users_getInfo(:uids => [useridA, useridB], :fields => ["first_name", "last_name"])
+
+# now, parse the user elements to get the names
+users = response.user_list
+nameA = users[0].first_name
+nameB = users[1].first_name
+</pre>
+</div>
+
+		<p>
+			For more samples, check out the <a href="facebookapi.html">sample API calls</a> page.
+		</p>
+		
+		<p>
+			The plugin automatically makes Rails URLs relative to <strong>http://apps.facebook.com</strong>
+			when it detects that you are inside the Canvas.  This saves a lot of headaches, and lets
+			you use the wonderful Routes just like you always did <em>(url_for, redirect_to, image_path, etc.)</em>:
+		</p>
+
+
+<div class="commandlineWrapper">
+<pre class="commandline">
+redirect_to :controller =&gt; 'MyController', :action =&gt; 'myAction'
+&lt;%= link_to "Some Page", :controller =&gt; 'MyController', :action =&gt; 'myAction' %&gt;
+&lt;img src="&lt;%= image_path 'myImage.jpg' %&gt;" /&gt;
+</pre>
+</div>
+		
+		
+		<p>
+			Besides these extra features, you can still use regular Rails <strong>session</strong> and <strong>flash</strong>
+			variables in the Facebook Canvas (supports PStore, ActiveRecordStore, DRbStore, and more!).
+		</p>
+		
+		<h2>4. Use acts_as_facebook_user</h2>
+		<p>
+			If you want, you can tie your Rails users directly to Facebook sessions.
+			Simply type <strong>acts_as_facebook_user</strong> in your model, and make sure that
+			your database has 2 fields: <strong>facebook_session_key</strong> and <strong>facebook_uid</strong>.
+			Now, you can easily find, create, and access your users:
+		</p>
+
+
+<div class="commandlineWrapper">
+<pre class="commandline">
+user = User.find_or_create_by_facebook_session(fbsession)
+fullName = user.first_name + user.last_name
+</pre>
+</div>
+
+		
+		
+		<h2>5. Stay up to date</h2>
+		<p>
+			RFacebook is being improved all the time, so be sure to check back for updates.
+			You'll almost never need to update the plugin, since it hooks directly into the gem.
+			To stay up to date, simply update your gem:
+		</p>
+
+
+<div class="commandlineWrapper">		
+<pre class="commandline">
+$ gem update rfacebook
+</pre>
+</div>
+
+		
+		<p>
+			If you notice any problems with RFacebook, please <a href="http://rubyforge.org/tracker/?func=add&group_id=3607&atid=13796">file a bug</a>.
+			If you have suggestions or improvements, feel free to submit patches, or just ask me if you can
+			join the project.
+		</p>
+
+		
+	</div>
+	
+</div>
+
+<div id="Footer" align="center">
+	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">Matt Pizzimenti</a>.  All rights reserved.
+</div>
+
+</body>
+</html>

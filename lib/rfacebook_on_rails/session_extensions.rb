@@ -30,20 +30,20 @@
 require "digest/md5"
 require "cgi"
 
-module RFacebook::Rails::SessionExtensions
+module RFacebook::Rails::SessionExtensions # :nodoc:
   
-  # SECTION: New Methods
-  def force_to_be_new!
+  # :section: New Methods
+  def force_to_be_new! # :nodoc:
     @force_to_be_new = true
   end
   
-  def using_facebook_session_id?
+  def using_facebook_session_id? # :nodoc:
     return (@fb_sig_session_id != nil)
   end
     
-  # SECTION: Base Overrides
+  # :section: Base Overrides
   
-  def new_session__RFACEBOOK
+  def new_session__RFACEBOOK # :nodoc:
     if @force_to_be_new
       return true
     else
@@ -51,7 +51,7 @@ module RFacebook::Rails::SessionExtensions
     end
   end
 
-  def initialize__RFACEBOOK(request, options = {})
+  def initialize__RFACEBOOK(request, options = {}) # :nodoc:
     
     # only try to use the sig when we don't have a cookie (i.e., in the canvas)
     if in_facebook_canvas?(request)
@@ -71,9 +71,9 @@ module RFacebook::Rails::SessionExtensions
     initialize__ALIASED(request, options)
   end
   
-  # SECTION: Extension Helpers
+  # :section: Extension Helpers
   
-  def self.included(base)
+  def self.included(base) # :nodoc:
     base.class_eval'
       alias :initialize__ALIASED :initialize
       alias :initialize :initialize__RFACEBOOK
@@ -83,7 +83,7 @@ module RFacebook::Rails::SessionExtensions
     '
   end
   
-  # SECTION: Private Helpers
+  # :section: Private Helpers
   
   private
   
@@ -91,7 +91,7 @@ module RFacebook::Rails::SessionExtensions
   #       (not sure why the nil key bug doesn't seem to be fixed in my installation)
   #       ...also, there seems to be some interaction with Mongrel as well that can
   #       cause the parameters to fail
-  def lookup_request_parameter(request, key)
+  def lookup_request_parameter(request, key) # :nodoc:
     
     # Depending on the user's version of Rails, this may fail due to a bug in Rails parsing of
     # nil keys: http://dev.rubyonrails.org/ticket/5137, so we have a backup plan
@@ -145,7 +145,7 @@ module RFacebook::Rails::SessionExtensions
     end
   end
   
-  def in_facebook_canvas?(request)
+  def in_facebook_canvas?(request) # :nodoc:
     # TODO: we should probably be checking the fb_sig for validity here (template method needed)
     #       ...we can only do this if we can grab the equivalent of a params hash
     return lookup_request_parameter(request, "fb_sig_in_canvas")
@@ -156,11 +156,11 @@ end
 # Module: SessionStoreExtensions
 #
 #   Special initialize method that attempts to force any session store to use the Facebook session
-module RFacebook::Rails::SessionStoreExtensions
+module RFacebook::Rails::SessionStoreExtensions # :nodoc:all
   
-  # SECTION: Base Overrides
+  # :section: Base Overrides
   
-  def initialize__RFACEBOOK(session, options, *extraParams)
+  def initialize__RFACEBOOK(session, options, *extraParams) # :nodoc:
     
     if session.using_facebook_session_id?
       
@@ -190,9 +190,9 @@ module RFacebook::Rails::SessionStoreExtensions
     end
   end
   
-  # SECTION: Extension Helpers
+  # :section: Extension Helpers
   
-  def self.included(base)
+  def self.included(base) # :nodoc:
     base.class_eval'
       alias :initialize__ALIASED :initialize
       alias :initialize :initialize__RFACEBOOK

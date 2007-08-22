@@ -32,12 +32,12 @@ module RFacebook
   module Rails
     module ModelExtensions
       
-      # SECTION: StandardErrors
+      # :section: StandardErrors
     
-      class APIKeyNeededStandardError < StandardError; end
-      class APISecretNeededStandardError < StandardError; end
+      class APIKeyNeededStandardError < StandardError; end # :nodoc:
+      class APISecretNeededStandardError < StandardError; end # :nodoc:
       
-      # SECTION: Template Methods (must be implemented by concrete subclass)
+      # :section: Template Methods (must be implemented by concrete subclass)
     
       def facebook_api_key
         raise APIKeyNeededStandardError
@@ -47,13 +47,13 @@ module RFacebook
         raise APISecretNeededStandardError
       end
       
-      # SECTION: ActsAs method mixing
+      # :section: ActsAs method mixing
       
-      def self.included(base)
+      def self.included(base) # :nodoc:
         base.extend ActsAsMethods
       end
 
-      module ActsAsMethods
+      module ActsAsMethods # :nodoc:all
         def acts_as_facebook_user
           include RFacebook::Rails::ModelExtensions::ActsAsFacebookUser::InstanceMethods
           extend RFacebook::Rails::ModelExtensions::ActsAsFacebookUser::ClassMethods
@@ -63,7 +63,7 @@ module RFacebook
       
       ##################################################################
       ##################################################################
-      # SECTION: Acts As Facebook User
+      # :section: Acts As Facebook User
       module ActsAsFacebookUser
         
         ACTORS = [] # holds a reference to all classes that have ActsAsFacebookUser injected
@@ -142,7 +142,7 @@ module RFacebook
             return self.facebook_session_key != nil
           end
           
-          def self.included(base)
+          def self.included(base) # :nodoc:
             ActsAsFacebookUser::ACTORS << base
             ActsAsFacebookUser::FIELDS.each do |fieldname|
               base.class_eval <<-end_eval

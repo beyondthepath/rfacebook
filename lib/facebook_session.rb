@@ -51,7 +51,7 @@ class FacebookSession
   
   ################################################################################################
   ################################################################################################
-  # SECTION: Errors
+  # :section: Errors
   ################################################################################################
     
   class RemoteStandardError < StandardError; end
@@ -60,7 +60,7 @@ class FacebookSession
     
   ################################################################################################
   ################################################################################################
-  # SECTION: Properties
+  # :section: Properties
   ################################################################################################
   
   # Property: session_user_id
@@ -120,7 +120,7 @@ class FacebookSession
   
   ################################################################################################
   ################################################################################################
-  # SECTION: Initialization
+  # :section: Initialization
   ################################################################################################
   
   # Function: initialize
@@ -152,7 +152,7 @@ class FacebookSession
       
   ################################################################################################
   ################################################################################################
-  # SECTION: API Calls
+  # :section: API Calls
   ################################################################################################
   protected
     
@@ -160,7 +160,11 @@ class FacebookSession
   #   This allows *any* Facebook method to be called, using the Ruby
   #   mechanism for responding to unimplemented methods.  Basically,
   #   this converts a call to "auth_getSession" to "auth.getSession"
-  #   and does the proper API call using the parameter hash given.  
+  #   and does the proper API call using the parameter hash given.
+  #
+  #   This allows you to call an API method such as facebook.users.getInfo
+  #   by calling "fbsession.users_getInfo"
+  #
   def method_missing(methodSymbol, *params)
     tokens = methodSymbol.to_s.split("_")
     if tokens[0] == "cached"
@@ -179,7 +183,7 @@ class FacebookSession
   #   method              - i.e. "users.getInfo"
   #   params              - hash of key,value pairs for the parameters to this method
   #   use_ssl             - set to true if the call will be made over SSL
-  def call_method(method, params={}, use_ssl=false)
+  def call_method(method, params={}, use_ssl=false) # :nodoc:
 
     @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call" if @logger
 
@@ -256,7 +260,7 @@ class FacebookSession
   #   method              - i.e. "users.getInfo"
   #   params              - hash of key,value pairs for the parameters to this method
   #   use_ssl             - set to true if the call will be made over SSL
-  def cached_call_method(method,params={},use_ssl=false)
+  def cached_call_method(method,params={},use_ssl=false) # :nodoc:
     key = cache_key_for(method,params)
     @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
     return @callcache[key] ||= call_method(method,params,use_ssl)
@@ -269,7 +273,7 @@ class FacebookSession
   #   method      - the API method being cached
   #   params      - a Hash of the parameters being sent to the API
   #
-  def cache_key_for(method,params)
+  def cache_key_for(method,params) # :nodoc:
     pairs = []
     params.each do |k,v|
       if v.is_a?(Array)
@@ -282,7 +286,7 @@ class FacebookSession
   
   ################################################################################################
   ################################################################################################
-  # SECTION: Signature Generation
+  # :section: Signature Generation
   ################################################################################################
 
   # Function: get_secret
@@ -295,7 +299,7 @@ class FacebookSession
   # Parameters:
   #   params    - a Hash containing the parameters to sign
   #
-  def get_secret(params)
+  def get_secret(params) # :nodoc:
     raise StandardError
   end
     
@@ -306,7 +310,7 @@ class FacebookSession
   # Parameters:
   #   params    - a Hash containing the parameters to sign
   #
-  def param_signature(params)    
+  def param_signature(params)   # :nodoc:  
     return generate_signature(params, get_secret(params));
   end
   
@@ -318,7 +322,7 @@ class FacebookSession
   #   hash    - a Hash containing the parameters to sign
   #   secret  - the API or session secret to use to sign the parameters
   #
-  def generate_signature(hash, secret)
+  def generate_signature(hash, secret) # :nodoc:
     args = []
     hash.each do |k,v|
       args << "#{k}=#{v}"
@@ -330,26 +334,30 @@ class FacebookSession
 
   ################################################################################################
   ################################################################################################
-  # SECTION: Deprecated Methods
+  # :section: Deprecated Methods
   ################################################################################################
   public
   
-  def session_uid
+  # DEPRECATED in favor of session_user_id
+  def session_uid # :nodoc:
     @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_uid is deprecated in favor of fbsession.session_user_id" if @logger
     return self.session_user_id
   end
   
-  def last_error
+  # DEPRECATED in favor of last_error_message
+  def last_error # :nodoc:
     @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.last_error is deprecated in favor of fbsession.last_error_message" if @logger
     return self.last_error_message
   end
   
-  def suppress_exceptions
+  # DEPRECATED in favor of suppress_errors
+  def suppress_exceptions # :nodoc:
     @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
     return self.suppress_errors
   end
   
-  def suppress_exceptions=(value)
+  # DEPRECATED in favor of suppress_errors
+  def suppress_exceptions=(value) # :nodoc:
     @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
     self.suppress_errors = value
   end

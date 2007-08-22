@@ -34,15 +34,15 @@ module RFacebook
   module Rails
     module ControllerExtensions
       
-      # SECTION: StandardErrors
+      # :section: StandardErrors
     
-      class APIKeyNeededStandardError < StandardError; end
-      class APISecretNeededStandardError < StandardError; end
-      class APICanvasPathNeededStandardError < StandardError; end
-      class APICallbackNeededStandardError < StandardError; end
-      class APIFinisherNeededStandardError < StandardError; end
+      class APIKeyNeededStandardError < StandardError; end # :nodoc:
+      class APISecretNeededStandardError < StandardError; end # :nodoc:
+      class APICanvasPathNeededStandardError < StandardError; end # :nodoc:
+      class APICallbackNeededStandardError < StandardError; end # :nodoc:
+      class APIFinisherNeededStandardError < StandardError; end # :nodoc:
     
-      # SECTION: Template Methods (must be implemented by concrete subclass)
+      # :section: Template Methods (must be implemented by concrete subclass)
     
       def facebook_api_key
         raise APIKeyNeededStandardError, "RFACEBOOK ERROR: when using the RFacebook on Rails plugin, please be sure that you have a facebook.yml file with 'key' defined"
@@ -66,7 +66,7 @@ module RFacebook
     
     
     
-      # SECTION: Special Variables
+      # :section: Special Variables
     
       # Function: fbparams
       #   Accessor for all params beginning with "fb_sig_"
@@ -123,10 +123,10 @@ module RFacebook
       
       end
     
-      # SECTION: Helpful Methods
+      # :section: Helpful Methods
     
       # DEPRECATED
-      def facebook_redirect_to(url)
+      def facebook_redirect_to(url) # :nodoc:
         RAILS_DEFAULT_LOGGER.info "** RFACEBOOK DEPRECATION NOTICE: facebook_redirect_to is deprecated in RFacebook. Instead, you can use redirect_to like any Rails app."
         if in_facebook_canvas?
           render :text => "<fb:redirect url=\"#{url}\" />"     
@@ -159,7 +159,10 @@ module RFacebook
         return fbparams["added"].to_i == 1
       end
       
-      # SECTION: before_filters
+      ################################################################################################
+      ################################################################################################
+      # :section: Before_filters
+      ################################################################################################
           
       def handle_facebook_login
                         
@@ -262,7 +265,10 @@ module RFacebook
         return true
       end
       
-      # SECTION: Facebook Debug Panel
+      ################################################################################################
+      ################################################################################################
+      # :section: Facebook Debug Panel
+      ################################################################################################
       
       def render_with_facebook_debug_panel(options={})
         begin
@@ -309,7 +315,7 @@ module RFacebook
         return ERB.new(template).result(Proc.new{})
       end
       
-      def facebook_status_manager
+      def facebook_status_manager # :nodoc:
         checks = [
           SessionStatusCheck.new(self),
           (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
@@ -324,9 +330,12 @@ module RFacebook
         return StatusManager.new(checks)
       end
       
-      # SECTION: Private Methods
+      ################################################################################################
+      ################################################################################################
+      # :section: RFacebook Private Methods
+      ################################################################################################
       
-      def rfacebook_session_holder
+      def rfacebook_session_holder # :nodoc:
         
         if (@rfacebook_session_holder == nil)
           @rfacebook_session_holder = FacebookWebSession.new(facebook_api_key, facebook_api_secret)
@@ -337,7 +346,7 @@ module RFacebook
         
       end
             
-      def rfacebook_persist_session_to_rails
+      def rfacebook_persist_session_to_rails # :nodoc:
         if (!in_facebook_canvas? and rfacebook_session_holder.is_valid?)
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: persisting Facebook session information into Rails session"
           session[:rfacebook_session] = @rfacebook_session_holder.dup
@@ -346,9 +355,12 @@ module RFacebook
       end
       
       
-      # SECTION: URL Management
+      ################################################################################################
+      ################################################################################################
+      # :section: URL Management
+      ################################################################################################
       
-      def url_for__RFACEBOOK(options={}, *parameters)
+      def url_for__RFACEBOOK(options={}, *parameters) # :nodoc:
         
         # error check
         if !options
@@ -399,7 +411,7 @@ module RFacebook
         return path
       end
       
-      def redirect_to__RFACEBOOK(options = {}, *parameters)
+      def redirect_to__RFACEBOOK(options = {}, *parameters) # :nodoc:
         if in_facebook_canvas?
           
           canvasRedirUrl = url_for(options, *parameters)          
@@ -413,11 +425,11 @@ module RFacebook
       end
    
       
-      # SECTION: Extension Helpers
+      # :section: Extension Helpers
       
-      CLASSES_EXTENDED = []
+      CLASSES_EXTENDED = [] # :nodoc:
             
-      def self.included(base)
+      def self.included(base) # :nodoc:
         
         # check for a double include
         doubleInclude = false
