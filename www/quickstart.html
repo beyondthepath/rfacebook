@@ -70,7 +70,7 @@ $ rake facebook:setup
 		
 		<p>
 			This will create <strong>config/facebook.yml</strong>.  Just open the file and <strong>paste in</strong> your own
-			API key and API secret.  You can ignore the <a href="tunnel.html">tunnel</a> configuration for now, but
+			API key and API secret (you need to get these from Facebook).  You can ignore the <a href="tunnel.html">tunnel</a> configuration for now, but
 			later on you should check it out.
 		</p>
 
@@ -78,7 +78,7 @@ $ rake facebook:setup
 		<h2>3. Use the new features in your controllers and views</h2>
 		<p>
 			First, you'll probably want to require the user to login or install your application. 
-			You can use the RFacebook <strong>before_filters</strong> to do that (<strong>require_facebook_login</strong> and <strong>require_facebook_install</strong>):
+			You can use the RFacebook <strong>before_filters</strong> to do that (<strong>require_facebook_login</strong> or <strong>require_facebook_install</strong>):
 		</p>
 
 <div class="commandlineWrapper">
@@ -146,6 +146,15 @@ user = User.find_or_create_by_facebook_session(fbsession)
 fullName = user.first_name + user.last_name
 </pre>
 </div>
+
+		<p>
+			In addition to <strong>first_name</strong> and <strong>last_name</strong>, your User objects will have all of the fields given by Facebook available to them: 
+			<em>about_me, activities, affiliations, birthday, books, current_location, education_history,
+			name, first_name, last_name, hometown_location, hs_info, interests, relationship_status,
+			meeting_for, meeting_sex, movies, music, notes_count, political, profile_update_time, quotes,
+			religion, sex, significant_other_id, status, timezone, tv, wall_count, work_history,
+			pic, pic_big, pic_small, pic_square</em>.
+		</p>
 
 		
 		

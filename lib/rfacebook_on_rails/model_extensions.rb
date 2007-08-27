@@ -32,19 +32,25 @@ module RFacebook
   module Rails
     module ModelExtensions
       
-      # :section: StandardErrors
+      ##################################################################
+      ##################################################################
+      # :section: Errors
+      ##################################################################
     
       class APIKeyNeededStandardError < StandardError; end # :nodoc:
       class APISecretNeededStandardError < StandardError; end # :nodoc:
       
+      ##################################################################
+      ##################################################################
       # :section: Template Methods (must be implemented by concrete subclass)
-    
+      ##################################################################
+
       def facebook_api_key
-        raise APIKeyNeededStandardError
+        raise APIKeyNeededStandardError, "RFACEBOOK ERROR: when using the RFacebook on Rails plugin, please be sure that you have a facebook.yml file with 'key' defined"
       end
     
       def facebook_api_secret
-        raise APISecretNeededStandardError
+        raise APISecretNeededStandardError, "RFACEBOOK ERROR: when using the RFacebook on Rails plugin, please be sure that you have a facebook.yml file with 'secret' defined"
       end
       
       # :section: ActsAs method mixing
@@ -64,6 +70,7 @@ module RFacebook
       ##################################################################
       ##################################################################
       # :section: Acts As Facebook User
+      ##################################################################
       module ActsAsFacebookUser
         
         ACTORS = [] # holds a reference to all classes that have ActsAsFacebookUser injected
@@ -99,6 +106,10 @@ module RFacebook
           "tv",
           "wall_count",
           "work_history",
+          "pic",
+          "pic_big",
+          "pic_small",
+          "pic_square"
         ]
 
         
@@ -106,13 +117,29 @@ module RFacebook
         module ClassMethods
                     
           def find_or_create_by_facebook_session(sess)
-            instance = find_by_facebook_uid(sess.session_user_id)
-            if !instance
-              instance = self.new
+            if sess.is_ready?
+              
+              # try to find, else create
+              instance = find_by_facebook_uid(sess.session_user_id)
+              if !instance
+                instance = self.new
+              end
+              
+              # update session info
+              instance.facebook_session = sess
+              
+              # update (or create) the object and return it
+              if !instance.save
+                RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: failed to update or create the Facebook user object in the database"
+                return nil
+              end
+              return instance
+
+            else              
+              RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: tried to use an inactive session for acts_as_facebook_user (in find_or_create_by_facebook_session)"
+              return nil
             end
-            instance.facebook_session = sess
-            instance.save
-            return instance
+              
           end
                             
         end
@@ -122,9 +149,9 @@ module RFacebook
           
           def facebook_session
             if !@facebook_session
-              self.facebook_session = FacebookWebSession.new(self.facebook_api_key, self.facebook_api_secret)
+              @facebook_session = FacebookWebSession.new(self.facebook_api_key, self.facebook_api_secret)
               begin
-                self.facebook_session.activate_with_previous_session(self.facebook_session_key, self.facebook_uid)
+                @facebook_session.activate_with_previous_session(self.facebook_session_key, self.facebook_uid)
               rescue
                 # not a valid facebook session, should we nil it out?
               end
@@ -139,16 +166,17 @@ module RFacebook
           end
 
           def has_infinite_session_key?
+            # TODO: this check should really look at expires
             return self.facebook_session_key != nil
           end
           
           def self.included(base) # :nodoc:
             ActsAsFacebookUser::ACTORS << base
             ActsAsFacebookUser::FIELDS.each do |fieldname|
-              base.class_eval <<-end_eval
+              base.class_eval <<-EOF
                 
                 def #{fieldname}
-                  if facebook_session.is_valid?
+                  if facebook_session.is_ready?
                     return facebook_session.cached_users_getInfo(
                       :uids => [facebook_uid],
                       :fields => ActsAsFacebookUser::FIELDS).user.send(:#{fieldname})
@@ -157,7 +185,7 @@ module RFacebook
                   end
                 end
               
-              end_eval
+              EOF
             end
           end
                 

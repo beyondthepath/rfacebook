@@ -29,7 +29,6 @@
 
 #
 # Some code was inspired by techniques used in Alpha Chen's old client.
-# Some code was ported from the official PHP5 client.
 #
 
 require "digest/md5"
@@ -100,22 +99,23 @@ class FacebookSession
     raise StandardError
   end
   
-  # Function: session_expired?
+  # Function: is_expired?
   #   Returns true when the session has expired
-  def session_expired?
+  def is_expired?
+    # TODO: this should look at the @session_expires as well
     return (@session_expired == true)
   end
   
   # Function: is_valid?
   #   Returns true when the session is definitely prepared to make API calls
   def is_valid?
-    return (is_activated? and !session_expired?)
+    return (is_activated? and !is_expired?)
   end
   
   # Function: is_ready?
   #   alias for is_valid?
   def is_ready?
-    return (is_activated? and !session_expired?)
+    return is_valid?
   end
   
   ################################################################################################
@@ -196,7 +196,7 @@ class FacebookSession
     if (!params)
       params = {}
     end
-    params = params.dup # patch courtesy of Project Agape
+    params = params.dup
     
     # params[:format] ||= @response_format
     params[:method] = "facebook.#{method}"
@@ -214,18 +214,9 @@ class FacebookSession
     # set up the param_signature value in the params
     params[:sig] = param_signature(params)
     
-    # get a server handle
-    port = (use_ssl == true) ? 443 : 80
-    http_server = Net::HTTP.new(API_SERVER_BASE_URL, port)
-    http_server.use_ssl = use_ssl
-    
-    # build a request
-    http_request = Net::HTTP::Post.new(API_PATH_REST)
-    http_request.form_data = params
-    
-    # get the response XML
-    xmlstring = http_server.start{|http| http.request(http_request)}.body
-    xml = Facepricot.new(xmlstring)
+    # make the remote call and contain the results in a Facepricot XML object
+    rawxml = post_request(params, use_ssl)
+    xml = Facepricot.new(rawxml)
 
     # error checking    
     if xml.at("error_response")
@@ -243,6 +234,9 @@ class FacebookSession
         raise ExpiredSessionStandardError, @last_error_message unless @suppress_errors == true
       end
       
+      # TODO: check for method not existing error (what code is it?)
+      #       and convert it to a Ruby "NoMethodError"
+      
       # otherwise, just throw a generic expired session
       raise RemoteStandardError, @last_error_message unless @suppress_errors == true
       
@@ -250,6 +244,28 @@ class FacebookSession
     end
     
     return xml
+  end
+  
+  # Function: post_request
+  #   Posts a request to the remote Facebook API servers, and returns the
+  #   raw body of the result
+  #
+  # Parameters:
+  #   params  - a Hash of the post parameters to send to the REST API
+  #   use_ssl - defaults to false, set to true if you want to use SSL for the POST
+  def post_request(params, use_ssl=false)
+    
+    # get a server handle
+    port = (use_ssl == true) ? 443 : 80
+    http_server = Net::HTTP.new(API_SERVER_BASE_URL, port)
+    http_server.use_ssl = use_ssl
+    
+    # build a request
+    http_request = Net::HTTP::Post.new(API_PATH_REST)
+    http_request.form_data = params
+    
+    # get the response XML
+    return http_server.start{|http| http.request(http_request)}.body
   end
   
   # Function: cached_call_method
@@ -360,6 +376,12 @@ class FacebookSession
   def suppress_exceptions=(value) # :nodoc:
     @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
     self.suppress_errors = value
+  end
+  
+  # DEPRECATED in favor of is_expired?
+  def session_expired?
+    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_expired? is deprecated in favor of fbsession.is_expired?" if @logger
+    return self.is_expired?
   end
 
 

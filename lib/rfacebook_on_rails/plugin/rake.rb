@@ -35,7 +35,7 @@ namespace "facebook" do
   ######################################################################################
   ######################################################################################
   desc "Sets up the RFacebook Rails Plugin.  Right now, this simply copies facebook.yml into your config directory."
-  task "setup" => "environment" do
+  task "setup" do
     
     filename = "#{RAILS_ROOT}/config/facebook.yml"
     puts "======================================================"

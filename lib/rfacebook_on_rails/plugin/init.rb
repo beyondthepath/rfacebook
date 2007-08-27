@@ -91,13 +91,18 @@ end
 # load Facebook configuration file (credit: Evan Weaver)
 begin
   yamlFile = YAML.load_file("#{RAILS_ROOT}/config/facebook.yml")
-  if yamlFile
-    FACEBOOK = yamlFile[RAILS_ENV] || {}
-  else
-    FACEBOOK = {}
-  end
 rescue Exception => e
-  FACEBOOK = {}
+  raise StandardError, "config/facebook.yml could not be loaded."
+end
+
+if yamlFile
+  if yamlFile[RAILS_ENV]
+    FACEBOOK =  yamlFile[RAILS_ENV]
+  else
+    raise StandardError, "config/facebook.yml exists, but doesn't have a configuration for RAILS_ENV=#{RAILS_ENV}."
+  end
+else
+  raise StandardError, "config/facebook.yml does not exist."
 end
 
 # parse for full URLs in facebook.yml (multiple people have made this mistake)

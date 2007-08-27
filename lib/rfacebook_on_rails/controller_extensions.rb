@@ -274,38 +274,7 @@ module RFacebook
         begin
           renderedOutput = render_to_string(options)
         rescue Exception => e
-          # TODO: make the backtrace rendering better (Evan Weaver's solution seems good, hopefully he'll allow usage of facebook_exceptions)
-          prettyBacktrace = e.backtrace.map do |line|
-            cleanLine = line.gsub(RAILS_ROOT, "").gsub("<", "&lt;").gsub(">", "&gt;")
-            pieces = cleanLine.split("\n")
-            if (pieces and pieces.size> 0)
-              cleanLine = "<ul>"              
-              pieces.each do |piece|
-                if matches = /.*[\/\\]+((.*)\:([0-9]+)\:\s*in\s*\`(.*)\')/.match(piece)
-                  oldPiece = piece
-                  filename = matches[2]
-                  line = matches[3]
-                  method = matches[4]
-                  piece = "<div class='summary'><strong>#{filename}</strong>:<em>#{line}</em> in <strong>#{method}</strong></div>"
-                  piece += "<div class='rawsummary'>#{oldPiece}</div>"
-                end
-                cleanLine += "<li>#{piece}</li>"
-              end
-              cleanLine += "</ul>"
-            end
-            "<tr><td>#{cleanLine}</td></tr>"
-          end
-          renderedOutput = "
-          <div class='RFacebook'>
-            <div class='backtrace'>
-              <table>
-                <tr><td>
-                  <h1>RFacebook <span style='font-weight: normal; color: #6D84B4'>exception backtrace</span></h1>
-                </td></tr>
-                #{prettyBacktrace}
-              </table>
-            </div>
-          </div>"
+          renderedOutput = facebook_canvas_backtrace(e)
         end
         render_text "#{facebook_debug_panel}#{renderedOutput}"
       end
@@ -313,6 +282,48 @@ module RFacebook
       def facebook_debug_panel(options={})
         template = File.read(File.dirname(__FILE__) + "/templates/debug_panel.rhtml")
         return ERB.new(template).result(Proc.new{})
+      end
+      
+      # def rescue_action(exception)
+      #   # TODO: for security, we only do this in development in the canvas
+      #   if (in_facebook_canvas? and RAILS_ENV == "development")
+      #     render_text "#{facebook_debug_panel}#{facebook_canvas_backtrace(exception)}"
+      #   else
+      #     # otherwise, do the default
+      #     super
+      #   end
+      # end
+      
+      def facebook_canvas_backtrace(exception)
+        
+        # TODO: potentially integrate features from Evan Weaver's facebook_exceptions
+        rfacebookBacktraceLines = []
+        exception.backtrace.each do |line|
+          
+          # escape HTML
+          cleanLine = line.gsub(RAILS_ROOT, "").gsub("<", "&lt;").gsub(">", "&gt;")
+          
+          # split up these lines by carriage return
+          pieces = cleanLine.split("\n")
+          if (pieces and pieces.size> 0)
+            pieces.each do |piece|
+              if matches = /.*[\/\\]+((.*)\:([0-9]+)\:\s*in\s*\`(.*)\')/.match(piece)
+                # for each parsed line, add to the array for later rendering in the template
+                rfacebookBacktraceLines << {
+                  :filename => matches[2],
+                  :line => matches[3],
+                  :method => matches[4],
+                  :rawsummary => piece,
+                }
+              end
+            end
+          end
+        end
+        
+        # render to the ERB template
+        template = File.read(File.dirname(__FILE__) + "/templates/exception_backtrace.rhtml")
+        return ERB.new(template).result(Proc.new{})
+
       end
       
       def facebook_status_manager # :nodoc:
@@ -370,7 +381,12 @@ module RFacebook
         # use special URL rewriting when inside the canvas
         # setting the mock_ajax option to true will override this
         # and force usage of regular Rails rewriting
-        if (in_facebook_canvas? and !options[:mock_ajax]) #TODO: do something separate for in_facebook_frame?
+        mockajaxSpecified = false
+        if options.is_a? Hash
+          mockajaxSpecified = options[:mock_ajax]
+        end
+          
+        if (in_facebook_canvas? and !mockajaxSpecified) #TODO: do something separate for in_facebook_frame?
           
           if options.is_a? Hash
             options[:only_path] = true
@@ -398,7 +414,7 @@ module RFacebook
           end
         
         # mock-ajax rewriting
-        elsif options[:mock_ajax]
+        elsif mockajaxSpecified
           options.delete(:mock_ajax) # clear it so it doesnt show up in the url
           options[:only_path] = true
           path = "#{request.protocol}#{request.host}:#{request.port}#{url_for__ALIASED(options, *parameters)}"
@@ -425,7 +441,10 @@ module RFacebook
       end
    
       
+      ################################################################################################
+      ################################################################################################
       # :section: Extension Helpers
+      ################################################################################################
       
       CLASSES_EXTENDED = [] # :nodoc:
             
