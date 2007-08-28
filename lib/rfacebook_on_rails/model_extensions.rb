@@ -147,6 +147,8 @@ module RFacebook
         ######################
         module InstanceMethods
           
+          # TODO: to help developers stay within the TOS, we should have a method in here like "with_facebook_scope(fbsession){...}"
+          
           def facebook_session
             if !@facebook_session
               @facebook_session = FacebookWebSession.new(self.facebook_api_key, self.facebook_api_secret)

@@ -36,6 +36,7 @@ p,
 pre
 	{
 		margin-left: 0px;
+		line-height: 1.5em;
 	}
 
 
@@ -44,6 +45,8 @@ h1
 	{
 		font-size: 1.7em;
 		color: #AF0000;
+		font-weight: bolder;
+		font-family: Arial Black, arial;
 	}
 
 h2
@@ -54,11 +57,18 @@ h2
 
 a
 	{
-		color: #3B5998;
 		text-decoration: none;
 		margin-bottom: -3px;
-		border-bottom: 1px solid #999;
+		/*border-bottom: 1px solid #999;*/
+		padding: 2px;
+		background-color: #3B5998;
+		color: white;
 		font-weight: bold;
+	}
+
+a:hover
+	{
+		background-color: #AF0000;
 	}
 
 .backToMain
@@ -129,6 +139,16 @@ a
 #CurrentVersionBox .number
 	{
 		font-size: 2.5em;
+	}
+
+#CurrentVersionBox:hover
+	{
+		background-color: #AF0000;
+	}
+
+#CurrentVersionBox:hover .message
+	{
+		color: #FFB9BF;
 	}
 	
 .comment

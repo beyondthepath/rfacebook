@@ -152,12 +152,18 @@ module RFacebook
       def in_external_app?
         # FIXME: once you click away in an iframe app, you are considered to be an external app
         # TODO: read up on the RFacebook hacks for avoiding nested iframes
-        return (!params[:fb_sig] and !in_facebook_frame?)
+        return (params["fb_sig"] == nil and !in_facebook_frame?)
       end
       
       def added_facebook_application?
-        return fbparams["added"].to_i == 1
+        return (params["fb_sig_added"] != nil)# and params["fb_sig_in_iframe"] == "1")
       end
+      
+      def facebook_platform_signature_verified?
+        return (fbparams and fparams.size > 0)
+      end
+      
+      # TODO: define something along the lines of is_logged_in_to_facebook? that returns fbsession.is_ready? perhaps
       
       ################################################################################################
       ################################################################################################
@@ -212,10 +218,7 @@ module RFacebook
       end
     
       def require_facebook_login
-      
-        # handle a facebook login if given (external sites and iframe only)
-        handle_facebook_login
-      
+            
         # now finish it off depending on whether we are in canvas, iframe, or external app
         if !performed?
                 
@@ -475,6 +478,9 @@ module RFacebook
             alias_method(:redirect_to__ALIASED, :redirect_to)
             alias_method(:redirect_to, :redirect_to__RFACEBOOK)
           '
+          
+          # ensure that every action handles facebook login
+          base.before_filter(:handle_facebook_login)
           
           # ensure that we persist the Facebook session into the Rails session (if possible)
           base.after_filter(:rfacebook_persist_session_to_rails)
