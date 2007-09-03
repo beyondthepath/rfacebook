@@ -86,6 +86,12 @@ module RFacebook
           dup_cookies = (self.cookies || {}).dup
           @fbparams = rfacebook_session_holder.get_fb_sig_params(dup_cookies)
         end
+        
+        # finally, if we are an iframe app we may have saved the fbparams
+        # to the session for safekeeping
+        if (!@fbparams || @fbparams.length <= 0)
+          @fbparams = session[:rfacebook_session_iframe_fbparams] || {}
+        end
               
         return @fbparams
       
@@ -138,25 +144,28 @@ module RFacebook
       end
     
       def in_facebook_canvas?
-        return (params["fb_sig_in_canvas"] != nil)# and params["fb_sig_in_canvas"] == "1")
+        in_canvas = params["fb_sig_in_canvas"] || fbparams["in_canvas"]
+        return (in_canvas == "1" || in_canvas == true)
       end
         
       def in_facebook_frame?
-        return (params["fb_sig_in_iframe"] != nil)# and params["fb_sig_in_iframe"] == "1")
+        in_iframe = params["fb_sig_in_iframe"] || fbparams["in_iframe"]
+        return (in_iframe == "1" || in_iframe == true)
       end
       
       def in_mock_ajax?
-        return (params["fb_mockajax_url"] != nil)
+        return (params["fb_mockajax_url"] == "1" || params["fb_mockajax_url"] == true)
       end
       
       def in_external_app?
         # FIXME: once you click away in an iframe app, you are considered to be an external app
-        # TODO: read up on the RFacebook hacks for avoiding nested iframes
+        # TODO: read up on the hacks for avoiding nested iframes
         return (params["fb_sig"] == nil and !in_facebook_frame?)
       end
       
       def added_facebook_application?
-        return (params["fb_sig_added"] != nil)# and params["fb_sig_in_iframe"] == "1")
+        addedApp = params["fb_sig_added"] || fbparams["added"]
+        return (addedApp == "1" || addedApp == true)
       end
       
       def facebook_platform_signature_verified?
@@ -365,6 +374,10 @@ module RFacebook
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: persisting Facebook session information into Rails session"
           session[:rfacebook_session] = @rfacebook_session_holder.dup
           session[:rfacebook_session].logger = nil # some session stores can't serialize the Rails logger
+          if in_facebook_frame?
+            # we need iframe apps to remember they are iframe apps
+            session[:rfacebook_session_iframe_fbparams] = fbparams
+          end
         end
       end
       
@@ -376,10 +389,13 @@ module RFacebook
       
       def url_for__RFACEBOOK(options={}, *parameters) # :nodoc:
         
-        # error check
-        if !options
-          RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: options cannot be nil in call to url_for"
-        end
+        # fix problems that some Rails installations had with sending nil options
+        options ||= {}
+        
+        # # error check
+        # if !options
+        #   RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: options cannot be nil in call to url_for"
+        # end
         
         # use special URL rewriting when inside the canvas
         # setting the mock_ajax option to true will override this
@@ -392,7 +408,7 @@ module RFacebook
         if (in_facebook_canvas? and !mockajaxSpecified) #TODO: do something separate for in_facebook_frame?
           
           if options.is_a? Hash
-            options[:only_path] = true
+            options[:only_path] = true if options[:only_path].nil?
           end
           
           # try to get a regular URL
@@ -400,8 +416,11 @@ module RFacebook
                           
           # replace anything that references the callback with the
           # Facebook canvas equivalent (apps.facebook.com/*)
-          if (path.starts_with?(self.facebook_callback_path) or "#{path}/".starts_with?(self.facebook_callback_path))
+          if path.starts_with?(self.facebook_callback_path)
             path.sub!(self.facebook_callback_path, self.facebook_canvas_path)
+            path = "http://apps.facebook.com#{path}"
+          elsif "#{path}/".starts_with?(self.facebook_callback_path)
+            path.sub!(self.facebook_callback_path.chop, self.facebook_canvas_path.chop)
             path = "http://apps.facebook.com#{path}"
           elsif (path.starts_with?("http://www.facebook.com") or path.starts_with?("https://www.facebook.com"))
             # be sure that URLs that go to some other Facebook service redirect back to the canvas

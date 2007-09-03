@@ -160,7 +160,7 @@ module RFacebook
       # handle invalidation
       if (timeout and (sigParams["time"].nil? or (Time.now.to_i - sigParams["time"].to_i > timeout.to_i)))
         # invalidate if the timeout has been reached
-        @logger.debug "** RFACEBOOK(GEM) - fbparams is empty because the signature was timed out" if @logger
+        #@logger.debug "** RFACEBOOK(GEM) - fbparams is empty because the signature was timed out" if @logger
         sigParams = {}
       end
       
@@ -168,7 +168,7 @@ module RFacebook
       expectedSig = originalParams["fb_sig"]
       if !(sigParams and expectedSig and generate_signature(sigParams, @api_secret) == expectedSig)
         # didn't match, empty out the params
-        @logger.debug "** RFACEBOOK(GEM) - fbparams is empty because the signature did not match" if @logger
+        #@logger.debug "** RFACEBOOK(GEM) - fbparams is empty because the signature did not match" if @logger
         sigParams = {}
       end
             

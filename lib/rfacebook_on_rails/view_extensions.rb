@@ -53,7 +53,7 @@ module RFacebook
       
       def image_path(*params)
         path = super(*params)
-        if (in_facebook_canvas? or in_mock_ajax?)
+        if ((in_facebook_canvas? or in_mock_ajax?) and !(/(\w+)(\:\/\/)([\w0-9\.]+)([\:0-9]*)(.*)/.match(path)))
           path = "#{request.protocol}#{request.host_with_port}#{path}"
         end
         return path

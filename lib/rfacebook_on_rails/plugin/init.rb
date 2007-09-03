@@ -36,6 +36,7 @@ module RFacebook::Rails::Plugin
   
   module ControllerExtensions
     def facebook_api_key
+      # TODO: pull these overrides up into the original module, and make a FACEBOOK global in the backwards-compatibility file
       FACEBOOK["key"] || super
     end
     def facebook_api_secret
