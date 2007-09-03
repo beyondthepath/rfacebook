@@ -1,0 +1,1 @@
+# no installation needed yet (could potentially create the facebook.yml though, but I prefer having "rake facebook:setup" for that)
