@@ -70,6 +70,13 @@ a:hover
 	{
 		background-color: #AF0000;
 	}
+	
+a.imglink,
+a.imglink:hover
+	{
+		padding: 0px;
+		background-color: transparent;
+	}
 
 .backToMain
 	{
