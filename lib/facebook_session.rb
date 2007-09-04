@@ -185,7 +185,7 @@ class FacebookSession
   #   use_ssl             - set to true if the call will be made over SSL
   def call_method(method, params={}, use_ssl=false) # :nodoc:
 
-    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call" if @logger
+    log_debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - making remote call"
 
     # ensure that this object has been activated somehow
     if (!method.include?("auth") and !is_activated?)
@@ -221,7 +221,7 @@ class FacebookSession
     # error checking    
     if xml.at("error_response")
       
-      @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed" if @logger
+      log_debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#call_method - #{method}(#{params.inspect}) - remote call failed"
       
       code = xml.at("error_code").inner_html.to_i
       msg = xml.at("error_msg").inner_html
@@ -278,7 +278,7 @@ class FacebookSession
   #   use_ssl             - set to true if the call will be made over SSL
   def cached_call_method(method,params={},use_ssl=false) # :nodoc:
     key = cache_key_for(method,params)
-    @logger.debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache" if @logger
+    log_debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#cached_call_method - #{method}(#{params.inspect}) - attempting to hit cache"
     return @callcache[key] ||= call_method(method,params,use_ssl)
   end
   
@@ -347,7 +347,43 @@ class FacebookSession
     requestStr = sortedArray.join("")
     return Digest::MD5.hexdigest("#{requestStr}#{secret}")
   end
-
+  
+  ################################################################################################
+  ################################################################################################
+  # :section: Marshalling Serialization Overrides
+  ################################################################################################
+  public
+    
+  def _dump(depth)
+    instanceVarHash = {}
+    self.instance_variables.each { |k| instanceVarHash[k] = self.instance_variable_get(k) }
+    # the logger must be removed before serializing
+    return Marshal.dump(instanceVarHash.delete_if{|k,v| k == "@logger"})
+  end
+  
+  def self._load(dumpedStr)
+    instance = self.alloc
+    dumped = Marshal.load(dumpedStr)
+    dumped.each do |k,v|
+      instance.instance_variable_set(k,v)
+    end
+    return instance
+  end
+  
+  ################################################################################################
+  ################################################################################################
+  # :section: Logging
+  ################################################################################################
+  private
+  
+  def log_debug(message) # :nodoc:
+    @logger.debug(message) if @logger
+  end
+  
+  def log_info(message) # :nodoc:
+    @logger.info(message) if @logger
+  end
+  
   ################################################################################################
   ################################################################################################
   # :section: Deprecated Methods
@@ -356,31 +392,31 @@ class FacebookSession
   
   # DEPRECATED in favor of session_user_id
   def session_uid # :nodoc:
-    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_uid is deprecated in favor of fbsession.session_user_id" if @logger
+    log_debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_uid is deprecated in favor of fbsession.session_user_id"
     return self.session_user_id
   end
   
   # DEPRECATED in favor of last_error_message
   def last_error # :nodoc:
-    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.last_error is deprecated in favor of fbsession.last_error_message" if @logger
+    log_debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.last_error is deprecated in favor of fbsession.last_error_message"
     return self.last_error_message
   end
   
   # DEPRECATED in favor of suppress_errors
   def suppress_exceptions # :nodoc:
-    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
+    log_debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors"
     return self.suppress_errors
   end
   
   # DEPRECATED in favor of suppress_errors
   def suppress_exceptions=(value) # :nodoc:
-    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors" if @logger
+    log_debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.suppress_exceptions is deprecated in favor of fbsession.suppress_errors"
     self.suppress_errors = value
   end
   
   # DEPRECATED in favor of is_expired?
   def session_expired?
-    @logger.debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_expired? is deprecated in favor of fbsession.is_expired?" if @logger
+    log_debug "** RFACEBOOK(GEM) - DEPRECATION NOTICE - fbsession.session_expired? is deprecated in favor of fbsession.is_expired?"
     return self.is_expired?
   end
 

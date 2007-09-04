@@ -101,9 +101,9 @@ class DummyController < ActionController::Base
     }.merge(overriddenOptions))
   end
     
-  def simulate_inside_canvas
+  def simulate_inside_canvas(moreParams={})
     self.stub_fbparams({:in_canvas=>true})
-    @extra_params = {"fb_sig_in_canvas"=>true}
+    @extra_params = {"fb_sig_in_canvas"=>true}.merge(moreParams)
   end
   
   def params

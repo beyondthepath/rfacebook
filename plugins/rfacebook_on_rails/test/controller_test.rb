@@ -189,8 +189,28 @@ class ControllerTest < Test::Unit::TestCase
     assert !@controller.in_facebook_canvas?, "Should not be in canvas"
     assert_equal "#{@controller.facebook_callback_path}foobar", @response.body
   end
+  
+  def test_should_detect_in_mock_ajax
+    @controller.stub_fbparams
+    @controller.simulate_inside_canvas({"fb_mockajax_url" => "http://www.example.com"})
+    post :index
+    assert @controller.in_mock_ajax?, "should be in mockajax"
+  end
+  
+  def test_should_be_able_to_marshal_fbsession
+    @controller.stub_fbparams
+    @controller.simulate_inside_canvas
+    post :index
+    assert Marshal.dump(@controller.fbsession)
+  end
 
-
+  def test_view_should_not_prepend_image_paths_that_are_already_absolute
+    # TODO: implement this
+  end
+  
+  def test_should_not_change_only_path_when_specified
+    # TODO: implement this
+  end
 
 
   

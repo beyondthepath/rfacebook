@@ -154,7 +154,7 @@ module RFacebook
       end
       
       def in_mock_ajax?
-        return (params["fb_mockajax_url"] == "1" || params["fb_mockajax_url"] == true)
+        return (params["fb_mockajax_url"] != nil)
       end
       
       def in_external_app?
@@ -372,8 +372,7 @@ module RFacebook
       def rfacebook_persist_session_to_rails # :nodoc:
         if (!in_facebook_canvas? and rfacebook_session_holder.is_valid?)
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: persisting Facebook session information into Rails session"
-          session[:rfacebook_session] = @rfacebook_session_holder.dup
-          session[:rfacebook_session].logger = nil # some session stores can't serialize the Rails logger
+          session[:rfacebook_session] = @rfacebook_session_holder.dup # TODO: do we need dup here anymore?
           if in_facebook_frame?
             # we need iframe apps to remember they are iframe apps
             session[:rfacebook_session_iframe_fbparams] = fbparams
