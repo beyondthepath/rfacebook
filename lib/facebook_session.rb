@@ -362,7 +362,7 @@ class FacebookSession
   end
   
   def self._load(dumpedStr)
-    instance = self.alloc
+    instance = self.new(nil,nil)
     dumped = Marshal.load(dumpedStr)
     dumped.each do |k,v|
       instance.instance_variable_set(k,v)

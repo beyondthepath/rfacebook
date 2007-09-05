@@ -201,7 +201,10 @@ class ControllerTest < Test::Unit::TestCase
     @controller.stub_fbparams
     @controller.simulate_inside_canvas
     post :index
-    assert Marshal.dump(@controller.fbsession)
+    serializedSession = Marshal.dump(@controller.fbsession)
+    assert serializedSession
+    deserializedSession = Marshal.load(serializedSession)
+    assert deserializedSession
   end
 
   def test_view_should_not_prepend_image_paths_that_are_already_absolute
