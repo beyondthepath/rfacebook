@@ -220,6 +220,8 @@ class ControllerTest < Test::Unit::TestCase
     assert_equal originalSession.is_expired?         , deserializedSession.is_expired?
     assert_equal originalSession.is_valid?           , deserializedSession.is_valid?
     assert_equal originalSession.is_ready?           , deserializedSession.is_ready?
+    
+    assert_equal originalSession.class, deserializedSession.class
   end
 
   def test_view_should_not_prepend_image_paths_that_are_already_absolute
