@@ -201,10 +201,25 @@ class ControllerTest < Test::Unit::TestCase
     @controller.stub_fbparams
     @controller.simulate_inside_canvas
     post :index
-    serializedSession = Marshal.dump(@controller.fbsession)
+
+    originalSession = @controller.fbsession.dup
+
+    serializedSession = Marshal.dump(originalSession)
     assert serializedSession
+
     deserializedSession = Marshal.load(serializedSession)
     assert deserializedSession
+
+    assert_equal originalSession.session_user_id     , deserializedSession.session_user_id
+    assert_equal originalSession.session_key         , deserializedSession.session_key
+    assert_equal originalSession.session_expires     , deserializedSession.session_expires
+    assert_equal originalSession.last_error_message  , deserializedSession.last_error_message
+    assert_equal originalSession.last_error_code     , deserializedSession.last_error_code
+    assert_equal originalSession.suppress_errors     , deserializedSession.suppress_errors
+    assert_equal originalSession.is_activated?       , deserializedSession.is_activated?
+    assert_equal originalSession.is_expired?         , deserializedSession.is_expired?
+    assert_equal originalSession.is_valid?           , deserializedSession.is_valid?
+    assert_equal originalSession.is_ready?           , deserializedSession.is_ready?
   end
 
   def test_view_should_not_prepend_image_paths_that_are_already_absolute
