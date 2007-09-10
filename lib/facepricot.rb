@@ -107,6 +107,10 @@ module RFacebook
     def to_s
       return @doc.containers[0].inner_html
     end
+    
+    def get(key)
+      return make_facepricot_chain(key.to_s, @doc.containers[0])
+    end
         
   end
   
@@ -121,6 +125,10 @@ module RFacebook
     
     def method_missing(methodSymbol, *params)
       return make_facepricot_chain(methodSymbol.to_s, @doc)
+    end
+    
+    def get(key)
+      return make_facepricot_chain(key.to_s, @doc)
     end
     
   end

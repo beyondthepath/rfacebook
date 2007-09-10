@@ -192,7 +192,7 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_should_detect_in_mock_ajax
     @controller.stub_fbparams
-    @controller.simulate_inside_canvas({"fb_mockajax_url" => "http://www.example.com"})
+    @controller.simulate_inside_canvas({"fb_sig_is_mockajax" => "1"})
     post :index
     assert @controller.in_mock_ajax?, "should be in mockajax"
   end
@@ -231,9 +231,36 @@ class ControllerTest < Test::Unit::TestCase
   def test_should_not_change_only_path_when_specified
     # TODO: implement this
   end
-
-
   
+  def test_should_detect_new_user_has_logged_in_when_in_iframe
+        
+    # log in the first user to the iframe
+    post :index
+    @controller.stub_fbparams("user" => "ABCDEFG", "in_iframe"=>true)
+    assert @controller.fbsession.is_valid?
+    assert_equal "ABCDEFG", @controller.fbsession.session_user_id
+    
+    # simulate a new user coming to the iframe (logout/login cycle happened in Facebook)
+    post :index
+    
+    # TODO: figure out the "proper" way in Rails to test a completely
+    # separate request (right now, the instance variable is still there
+    # since @controller obviously still exists, so we have to simulate
+    # its removal)...IntegrationTest is likely what we need
+    @controller.send(:remove_instance_variable, :@rfacebook_session_holder)
+    
+    @controller.stub_fbparams("user" => "ZYXWVUT", "in_iframe"=>true)
+    assert @controller.fbsession.is_valid?
+    assert_equal "ZYXWVUT", @controller.fbsession.session_user_id
+    
+    # simulate someone coming back to the iframe without POSTed fb_sig params
+    # (should use previous session from Rails session)
+    post :index
+    assert @controller.fbsession.is_valid?
+    assert_equal "ZYXWVUT", @controller.fbsession.session_user_id, "should have grabbed fbsession from Rails session"
+    
+  end
+
   
   def setup
     @controller = DummyController.new
@@ -267,4 +294,3 @@ class ControllerTest < Test::Unit::TestCase
   end
     
 end
-

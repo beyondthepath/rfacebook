@@ -107,20 +107,31 @@ module RFacebook
         
         # if we are in the canvas, iframe, or mock ajax, we should be able to activate the session here
         if (!rfacebook_session_holder.is_valid? and (in_facebook_canvas? or in_facebook_frame? or in_mock_ajax?))
-                  
+                            
           # then try to activate it somehow (or retrieve from previous state)
           # these might be nil
           facebookUid = fbparams["user"]
           facebookSessionKey = fbparams["session_key"]
           expirationTime = fbparams["expires"]
-      
+                
           if (facebookUid and facebookSessionKey and expirationTime)
             # we have the user id and key from the fb_sig_ params, activate the session
             rfacebook_session_holder.activate_with_previous_session(facebookSessionKey, facebookUid, expirationTime)
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Activated session from inside the canvas"
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Activated session from inside the canvas (user=#{facebookUid}, session_key=#{facebookSessionKey}, expires=#{expirationTime})"
           else
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Tried to activate session from inside the canvas, but failed"
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK WARNING: Tried to get a valid Facebook session from POST params, but failed"
           end
+          
+        end
+        
+        # if we still don't have a session, check the Rails session
+        # (used for external and iframe apps when fb_sig POST params weren't present)
+        if (!rfacebook_session_holder.is_valid? and session[:rfacebook_session] and session[:rfacebook_session].is_valid?)
+        
+          # grab saved Facebook session from Rails session
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: grabbing Facebook session from Rails session"
+          @rfacebook_session_holder = session[:rfacebook_session]
+          @rfacebook_session_holder.logger = RAILS_DEFAULT_LOGGER
                       
         end
         
@@ -154,7 +165,8 @@ module RFacebook
       end
       
       def in_mock_ajax?
-        return (params["fb_mockajax_url"] != nil)
+        is_mockajax = params["fb_sig_is_mockajax"]
+        return (is_mockajax == "1" || is_mockajax == true || params["fb_mockajax_url"] != nil)
       end
       
       def in_external_app?
@@ -169,61 +181,52 @@ module RFacebook
       end
       
       def facebook_platform_signature_verified?
-        return (fbparams and fparams.size > 0)
+        return (fbparams and fbparams.size > 0)
       end
       
       # TODO: define something along the lines of is_logged_in_to_facebook? that returns fbsession.is_ready? perhaps
       
       ################################################################################################
       ################################################################################################
-      # :section: Before_filters
+      # :section: before_filters
       ################################################################################################
           
       def handle_facebook_login
                         
-        if !in_facebook_canvas?
-            
-          if params["auth_token"]
-            
-            # activate with the auth token
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: attempting to create a new Facebook session from auth_token"
-            staleToken = false
-            begin
-              
-              # try to use the auth_token
-              rfacebook_session_holder.activate_with_token(params["auth_token"])
-              
-            rescue StandardError => e
-              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Tried to use a stale auth_token"
-              staleToken = true
-            end
-              
-            # template method call upon success
-            if (rfacebook_session_holder.is_valid? and !staleToken)
-              RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Login was successful, calling finish_facebook_login"
-              if in_external_app?
-                finish_facebook_login
-              end
-            end
-            
-          elsif (session[:rfacebook_session] and session[:rfacebook_session].is_valid?)
-            
-            # grab saved Facebook session from Rails session
-            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: grabbing Facebook session from Rails session"
-            @rfacebook_session_holder = session[:rfacebook_session]
-            @rfacebook_session_holder.logger = RAILS_DEFAULT_LOGGER
+        # we only do this when we don't have the fb_sig to give us a session
+        # in these cases, we always check to see if we got an auth_token
+        # from redirecting to login to facebook
+        if (!facebook_platform_signature_verified? and params["auth_token"])
           
+          # activate with the auth token
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: attempting to create a new Facebook session from auth_token"
+          staleToken = false
+          begin
+            
+            # try to use the auth_token
+            rfacebook_session_holder.activate_with_token(params["auth_token"])
+            
+          rescue StandardError => e
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Tried to use a stale auth_token"
+            staleToken = true
           end
-        
+            
+          # template method call upon success
+          if (rfacebook_session_holder.is_valid? and !staleToken)
+            RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Login was successful, calling finish_facebook_login"
+            if in_external_app?
+              finish_facebook_login
+            end
+          end
+      
           # warning logs
           if !rfacebook_session_holder.is_valid?
-            RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: Facebook session could not be activated (from handle_facebook_login)"
+            RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: Facebook session could not be activated with auth_token"
           end
-            
+        
         end
         
         return true
-        
       end
     
       def require_facebook_login

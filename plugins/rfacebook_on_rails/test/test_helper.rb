@@ -29,6 +29,7 @@
 
 require File.expand_path(File.join(File.dirname(__FILE__), '../../../../config/environment.rb'))
 require "action_controller/test_process"
+require "action_controller/integration"
 
 # helpers for all RFacebook unit tests
 class Test::Unit::TestCase
@@ -65,7 +66,7 @@ class DummyController < ActionController::Base
   def index
     render :text => "viewing index"
   end
-  
+    
   def nofilter
     render :text => "no filter needed"
   end
@@ -102,7 +103,7 @@ class DummyController < ActionController::Base
   end
     
   def simulate_inside_canvas(moreParams={})
-    self.stub_fbparams({:in_canvas=>true})
+    self.stub_fbparams({"in_canvas"=>true})
     @extra_params = {"fb_sig_in_canvas"=>true}.merge(moreParams)
   end
   
@@ -133,3 +134,4 @@ class DummyModel < ActiveRecord::Base
     "dummysessionkey"
   end
 end
+
