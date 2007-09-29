@@ -63,6 +63,8 @@ module RFacebook
         return @controller.facebook_debug_panel(options)
       end
       
+      # TODO: override form_for to do <fb:editor> for Canvas pages, perhaps with an option to suppress such behavior
+      
     end
   end
 end

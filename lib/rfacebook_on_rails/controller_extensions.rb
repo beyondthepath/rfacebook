@@ -105,6 +105,11 @@ module RFacebook
       #   A FacebookWebSession.  You may want to check is_valid? before using it.
       def fbsession
         
+        # do a check to ensure that we nil out the rfacebook_session in case there is a new user visiting
+        if session[:rfacebook_session] and fbparams["session_key"] and session[:rfacebook_session].session_key != fbparams["session_key"]
+          session[:rfacebook_session] = nil
+        end
+        
         # if we are in the canvas, iframe, or mock ajax, we should be able to activate the session here
         if (!rfacebook_session_holder.is_valid? and (in_facebook_canvas? or in_facebook_frame? or in_mock_ajax?))
                             
@@ -167,6 +172,11 @@ module RFacebook
       def in_mock_ajax?
         is_mockajax = params["fb_sig_is_mockajax"]
         return (is_mockajax == "1" || is_mockajax == true || params["fb_mockajax_url"] != nil)
+      end
+      
+      def in_ajax?
+        is_ajax = params["fb_sig_is_ajax"]
+        return (is_ajax == "1" || is_ajax == true)
       end
       
       def in_external_app?
@@ -280,6 +290,13 @@ module RFacebook
         return true
       end
       
+      # TODO: check this out
+      # def require_facebook_install                              
+      #   if in_facebook_frame? and not added_facebook_application?
+      #     render :text => %Q(<script language="javascript">top.location.href="#{fbsession.get_install_url}&next=#{request.path.gsub(/#{facebook_callback_path}/, "")}"</script>)
+      #   end
+      # end
+      
       ################################################################################################
       ################################################################################################
       # :section: Facebook Debug Panel
@@ -299,6 +316,7 @@ module RFacebook
         return ERB.new(template).result(Proc.new{})
       end
       
+      # TODO: implement this in version 1.0
       # def rescue_action(exception)
       #   # TODO: for security, we only do this in development in the canvas
       #   if (in_facebook_canvas? and RAILS_ENV == "development")
@@ -393,21 +411,19 @@ module RFacebook
         
         # fix problems that some Rails installations had with sending nil options
         options ||= {}
-        
-        # # error check
-        # if !options
-        #   RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: options cannot be nil in call to url_for"
-        # end
-        
+                
         # use special URL rewriting when inside the canvas
-        # setting the mock_ajax option to true will override this
-        # and force usage of regular Rails rewriting
-        mockajaxSpecified = false
+        # setting the full_callback option to true will override this
+        # and force usage of regular Rails rewriting        
         if options.is_a? Hash
-          mockajaxSpecified = options[:mock_ajax]
+          if options[:mock_ajax]
+            RAILS_DEFAULT_LOGGER.info "** RFACEBOOK DEPRECATION WARNING: don't use :mock_ajax => true in your link_to anymore.  Instead, use :full_callback => true."
+          end
+          fullCallback = (options[:full_callback] == true) ? true : false
+          options.delete(:full_callback)
         end
           
-        if (in_facebook_canvas? and !mockajaxSpecified) #TODO: do something separate for in_facebook_frame?
+        if ((in_facebook_canvas? or in_mock_ajax? or in_ajax?) and !fullCallback) #TODO: do something separate for in_facebook_frame?
           
           if options.is_a? Hash
             options[:only_path] = true if options[:only_path].nil?
@@ -437,9 +453,8 @@ module RFacebook
             path = "#{request.protocol}#{request.host}:#{request.port}#{path}"
           end
         
-        # mock-ajax rewriting
-        elsif mockajaxSpecified
-          options.delete(:mock_ajax) # clear it so it doesnt show up in the url
+        # full callback rewriting
+        elsif fullCallback
           options[:only_path] = true
           path = "#{request.protocol}#{request.host}:#{request.port}#{url_for__ALIASED(options, *parameters)}"
         
@@ -452,12 +467,22 @@ module RFacebook
       end
       
       def redirect_to__RFACEBOOK(options = {}, *parameters) # :nodoc:
+        
+        # get the url
+        redirectUrl = url_for(options, *parameters)
+
+        # canvas redirect
         if in_facebook_canvas?
+                  
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{redirectUrl}"
+          render :text => "<fb:redirect url=\"#{redirectUrl}\" />"
+        
+        # iframe redirect
+        elsif redirectUrl.match(/^https?:\/\/([^\/]*\.)?facebook\.com(:\d+)?/i)
+          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: iframe redirect to #{redirectUrl}"
+          render :text => %Q(<script type="text/javascript">\ntop.location.href='#{redirectUrl}';\n</script>)
           
-          canvasRedirUrl = url_for(options, *parameters)          
-          RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Canvas redirect to #{canvasRedirUrl}"
-          render :text => "<fb:redirect url=\"#{canvasRedirUrl}\" />"
-          
+        # otherwise, we only need to do a standard redirect
         else
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
           redirect_to__ALIASED(options, *parameters)

@@ -4,7 +4,7 @@ require "rake/gempackagetask"
 
 spec = Gem::Specification.new do |s| 
   s.name = "rfacebook"
-  s.version = "0.9.6"
+  s.version = "0.9.7"
   s.author = "Matt Pizzimenti"
   s.email = "matt@livelearncode.com"
   s.homepage = "http://livelearncode.com/"

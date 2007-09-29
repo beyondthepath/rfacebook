@@ -113,7 +113,8 @@ class ControllerTest < Test::Unit::TestCase
   
   def test_should_redirect_for_unauthenticated_user_in_external_site
     post :index
-    assert_redirected_to "http://www.facebook.com/login.php?v=1.0&api_key=#{@controller.facebook_api_key}"
+    #assert_redirected_to "http://www.facebook.com/login.php?v=1.0&api_key=#{@controller.facebook_api_key}"
+    assert_equal "<script type=\"text/javascript\">\ntop.location.href='http://www.facebook.com/login.php?v=1.0&api_key=#{@controller.facebook_api_key}';\n</script>", @response.body
   end
   
   def test_should_redirect_for_unauthenticated_user_in_canvas
