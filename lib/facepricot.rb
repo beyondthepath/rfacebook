@@ -32,35 +32,29 @@ require "hpricot"
 module RFacebook
 
   module FacepricotChaining
-  
-    def make_facepricot_chain(key, doc)
     
+    private
+  
+    def make_facepricot_chain(key, doc) # :nodoc:
+      
       if matches = /(.*)_list/.match(key)
         listKey = matches[1]
       end
-    
-      result = nil
       
-      if !result
-        if listKey
-          result = doc.search("/#{listKey}")
-        end
-      end
+      results = nil
     
-      if !result
-        result = doc.at("/#{key}")
-      end
-    
-      if !result
-        if listKey
+      if listKey
+        result = doc.search("/#{listKey}")
+        if result.empty? 
           result = doc.search("//#{listKey}")
+        end 
+      else 
+        result = doc.at("/#{key}")
+        if !result 
+          result = doc.at("//#{key}")
         end
       end
-    
-      if !result
-        result = doc.at("//#{key}")
-      end
-    
+
       if result
         if result.is_a?(Array)
           return result.map{|r| FacepricotChain.new(r)}
