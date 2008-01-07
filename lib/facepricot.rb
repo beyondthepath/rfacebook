@@ -69,13 +69,14 @@ module RFacebook
     
   end
   
-  class Facepricot
+  class Facepricot < String
     
     include FacepricotChaining
     
     def initialize(xml)
       @doc = Hpricot.XML(xml)
       @raw_xml = xml
+      super(@doc.containers[0].inner_html)
     end
     
     def method_missing(methodSymbol, *params)

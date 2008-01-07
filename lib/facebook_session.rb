@@ -165,7 +165,7 @@ module RFacebook
       end
     
       # make the remote method call
-      return remote_call(remoteMethod, params.first)
+      return remote_call(remoteMethod, params.first)  
     end
   
     # Sets everything up to make a POST request to Facebook's API servers.
@@ -187,7 +187,7 @@ module RFacebook
       # non-auth methods get special consideration
       unless(method == "auth.getSession" or method == "auth.createToken")
         # session must be activated for non-auth methods
-        raise NotActivatedStandardError, "You must activate the session before using it." unless is_activated?
+        raise NotActivatedStandardError, "You must activate the session before using it." unless ready?
       
         # secret and call ID must be set for non-auth methods
         params[:session_key] = session_key
@@ -218,10 +218,10 @@ module RFacebook
         # get the error code
         errorCode = facepricotXML.at("error_code").inner_html.to_i
         errorMessage = facepricotXML.at("error_msg").inner_html
-        log_debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#remote_call - remote call failed (#{errorCode}: #{errorMesage})"
+        log_debug "** RFACEBOOK(GEM) - RFacebook::FacebookSession\#remote_call - remote call failed (#{errorCode}: #{errorMessage})"
       
         # TODO: remove these 2 lines
-        @last_error_message = "ERROR #{errorCode}: #{errorMessage} (#{method.inspect}, #{params.inspect})" # DEPRECATED
+        @last_error_message = "ERROR #{errorCode}: #{errorMessage}" # DEPRECATED
         @last_error_code = errorCode # DEPRECATED
       
         # check to see if this error was an expired session error
@@ -238,11 +238,11 @@ module RFacebook
         # when the session expires, we need to record that internally
         when 102
           @expired = true
-          raise ExpiredSessionStandardError, errorMessage, errorCode unless quiet? == true
+          raise ExpiredSessionStandardError.new(errorMessage, errorCode) unless quiet? == true
       
         # otherwise, just raise a regular remote error with the error code
         else
-          raise RemoteStandardError, errorMessage, errorCode unless quiet? == true
+          raise RemoteStandardError.new(errorMessage, errorCode) unless quiet? == true
         end
       
         # since the quiet flag may have been activated, we may not have thrown
@@ -328,6 +328,12 @@ module RFacebook
     # DEPRECATED
     def is_expired?
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_expired? is deprecated, use expired? instead"
+      return is_ready?
+    end
+
+    # DEPRECATED
+    def is_activated?
+      RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_activated? is deprecated, use ready? instead"
       return is_ready?
     end
   

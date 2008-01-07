@@ -4,17 +4,17 @@ require "rake/gempackagetask"
 
 spec = Gem::Specification.new do |s| 
   s.name = "rfacebook"
-  s.version = "0.9.7"
+  s.version = "0.9.8"
   s.author = "Matt Pizzimenti"
   s.email = "matt@livelearncode.com"
-  s.homepage = "http://livelearncode.com/"
+  s.homepage = "http://www.livelearncode.com/"
   s.rubyforge_project = "rfacebook"
   s.platform = Gem::Platform::RUBY
   s.summary = "A Ruby interface to the Facebook API v1.0+.  Works with RFacebook on Rails plugin (see http://rfacebook.rubyforge.org)."
-  s.files = FileList["lib/*"].to_a.concat(FileList["lib/rfacebook_on_rails/*"].to_a).concat(FileList["lib/rfacebook_on_rails/plugin/*"].to_a).concat(FileList["lib/rfacebook_on_rails/tests/*"].concat(FileList["lib/rfacebook_on_rails/templates/*"]).to_a)
+  s.files = FileList["lib/*.rb"]
   s.require_path = "lib"
   s.autorequire = "rfacebook"
-  s.test_files = []#Dir.glob("test/*.rb")
+  s.test_files = Dir.glob("test/*.rb")
   s.has_rdoc = true
   s.extra_rdoc_files = ["README"]
   s.add_dependency("hpricot", ">= 0.6.0")
@@ -28,14 +28,15 @@ Rake::GemPackageTask.new(spec) do |pkg|
 end
 
 task :default => "pkg/#{spec.name}-#{spec.version}.gem" do
-  putsCheck = `grep puts lib/* lib/*/* lib/*/*/init.rb lib/*/*/install.rb lib/*/*/Rakefile.rb lib/*/*/uninstall.rb`
+  putsCheck = `grep puts lib/*`
   if putsCheck.size > 0
     puts "********** WARNING: stray puts left in code"
   end
   puts "generated latest version"
 end
 
+# TODO: remember to make docs for the plugin too
 task :docs do
   `rm -rf doc`
-  `rdoc --diagram --inline --line-numbers lib/*session.rb lib/rfacebook_on_rails/controller_extensions.rb lib/rfacebook_on_rails/view_extensions.rb`
+  `rdoc --diagram --inline --line-numbers lib/*session.rb`
 end

@@ -27,22 +27,33 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require File.dirname(__FILE__) + '/facebook_session_test_methods'
+require File.dirname(__FILE__) + "/test_helper"
+require "test/unit"
+require "rubygems"
+require "mocha"
 
-class FacebookWebSessionTest < Test::Unit::TestCase
+class ViewTest < Test::Unit::TestCase
   
-  include FacebookSessionTestMethods
+  def test_extensions_are_present
+    assert @view.respond_to?(:in_facebook_canvas?)
+    assert @view.respond_to?(:in_facebook_frame?)
+    assert @view.respond_to?(:in_mock_ajax?)
+    assert @view.respond_to?(:fbparams)
+    assert @view.respond_to?(:fbsession)
+    assert @view.respond_to?(:image_path)
+    assert @view.respond_to?(:facebook_debug_panel)
+  end
+
+  def test_image_path_should_not_rewrite_absolute_urls
+    # TODO: implement test
+  end
   
   def setup
-    @fbsession = RFacebook::FacebookWebSession.new(RFacebook::Dummy::API_KEY, RFacebook::Dummy::API_SECRET)
+    @controller = DummyController.new
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    @view = ActionView::Base.allocate # TODO: how do we unit test views in Rails?
   end
-  
-  def test_should_return_install_url
-    assert_equal "http://www.facebook.com/install.php?api_key=#{RFacebook::Dummy::API_KEY}", @fbsession.get_install_url
-  end
-  
-  def test_should_return_login_url
-    assert_equal "http://www.facebook.com/login.php?v=1.0&api_key=#{RFacebook::Dummy::API_KEY}", @fbsession.get_login_url
-  end
-  
+    
 end
+

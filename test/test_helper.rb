@@ -1,69 +1,16 @@
-# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
-# All rights reserved.
-# 
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted provided that the following conditions are met:
-# 
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# 
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# 
-# Neither the name of the original author nor the names of contributors
-# may be used to endorse or promote products derived from this software
-# without specific prior written permission.
-# 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+require 'test/unit'
+require 'rubygems'
+require 'mocha'
+require 'rfacebook'
 
-require File.dirname(__FILE__) + "/test_helper"
-require "test/unit"
-require "rubygems"
-require "mocha"
 
-class APITest < Test::Unit::TestCase
-    
-  def test_fbsession_methods_are_present
-    # TODO: update these to reflect the new methods
-    assert @controller.fbsession.respond_to?(:session_user_id)
-    assert @controller.fbsession.respond_to?(:session_key)
-    assert @controller.fbsession.respond_to?(:session_expires)
-    assert @controller.fbsession.respond_to?(:last_error_message), "This assertion is OK to fail with RFacebook Gem <= 0.9.1"
-    assert @controller.fbsession.respond_to?(:logger)
-    assert @controller.fbsession.respond_to?(:logger=)
-    assert @controller.fbsession.respond_to?(:is_activated?) # alias for "is_ready?"
-    assert @controller.fbsession.respond_to?(:is_expired?), "This assertion is OK to fail with RFacebook Gem <= 0.9.1"
-    assert @controller.fbsession.respond_to?(:is_ready?), "This assertion is OK to fail with RFacebook Gem <= 0.9.1"    
-  end
-
-  def setup
-    
-    # we want to test with the same fbsession that a real controller will get
-    @controller = DummyController.new
-    @request    = ActionController::TestRequest.new
-    @response   = ActionController::TestResponse.new
-    
-    # simulate fbsession setup inside canvas
-    # (most common usage, but it really doesn't matter for this test case anyway)
-    @controller.simulate_inside_canvas
-    post :index
-    
-    assert @controller.fbparams.size > 0, "API Test should have simulated fbparams properly"
-    assert @controller.fbsession.is_ready?, "API Test should have an fbsession that is ready to go"
-    
-    # set up some dummy responses from the API
-    @dummy_error_response = <<-EOF
+module RFacebook
+  module Dummy
+  
+    API_KEY = "dummykey123"
+    API_SECRET = "dummysecret456"
+  
+    ERROR_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
       <error_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
         <error_code>5</error_code>
@@ -96,8 +43,40 @@ class APITest < Test::Unit::TestCase
         </request_args>
       </error_response>
     EOF
-    
-    @dummy_auth_getSession_response = <<-EOF
+  
+    ERROR_RESPONSE_3 = <<-EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <error_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
+        <error_code>3</error_code>
+        <error_msg>method does not exist</error_msg>
+      </error_response>
+    EOF
+  
+    ERROR_RESPONSE_100 = <<-EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <error_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
+        <error_code>100</error_code>
+        <error_msg>bad arguments</error_msg>
+      </error_response>
+    EOF
+  
+    ERROR_RESPONSE_102 = <<-EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <error_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
+        <error_code>102</error_code>
+        <error_msg>expired session</error_msg>
+      </error_response>
+    EOF
+  
+    ERROR_RESPONSE_606 = <<-EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <error_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
+        <error_code>606</error_code>
+        <error_msg>wrong number of arguments</error_msg>
+      </error_response>
+    EOF
+  
+    AUTH_GETSESSION_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
       <auth_getSession_response
         xmlns="http://api.facebook.com/1.0/"
@@ -108,8 +87,8 @@ class APITest < Test::Unit::TestCase
           <expires>1173309298</expires>
       </auth_getSession_response>
     EOF
-    
-    @dummy_group_getMembers_response = <<-EOF
+  
+    GROUP_GETMEMBERS_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
       <groups_getMembers_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">
         <members list="true">
@@ -125,13 +104,13 @@ class APITest < Test::Unit::TestCase
         <not_replied list="true"/>
       </groups_getMembers_response>
     EOF
-    
-    @dummy_users_getLoggedInUser_response = <<-EOF
+  
+    USERS_GETLOGGEDINUSER_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
       <users_getLoggedInUser_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">1234567</users_getLoggedInUser_response>
     EOF
-    
-    @dummy_users_getInfo_response = <<-EOF
+  
+    USERS_GETINFO_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
       <users_getInfo_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd" list="true">
         <user>
@@ -228,8 +207,5 @@ class APITest < Test::Unit::TestCase
          </user>
       </users_getInfo_response>
     EOF
-    
   end
-
-      
 end

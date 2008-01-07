@@ -1,3 +1,2 @@
-require "rfacebook/facebook_session"
-require "rfacebook/facebook_web_session"
-require "rfacebook/facebook_desktop_session"
+require 'facebook_web_session'
+require 'facebook_desktop_session'

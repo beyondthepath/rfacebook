@@ -27,22 +27,55 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require File.dirname(__FILE__) + '/facebook_session_test_methods'
+module RFacebook
+  module Rails
+    module ViewExtensions
+      
+      # returns true if the user is viewing the canvas
+      def in_facebook_canvas?
+        @controller.in_facebook_canvas?
+      end
+      
+      # returns true if the user is in an iframe
+      def in_facebook_frame?
+        @controller.in_facebook_frame?
+      end
+      
+      # returns true if the render is using mock ajax
+      def in_mock_ajax?
+        @controller.in_mock_ajax?
+      end
+      
+      # returns the current fb_sig_params (only if they validated properly)
+      def fbparams
+        @controller.fbparams
+      end
+      
+      # returns the current user's Facebook session (an instance of FacebookWebSession)
+      def fbsession
+        @controller.fbsession
+      end
+      
+      
+      
+      # [override]
+      def path_to_image(*params)
+        path = super(*params)
+        if ((in_facebook_canvas? or in_mock_ajax?) and !(/(\w+)(\:\/\/)([\w0-9\.]+)([\:0-9]*)(.*)/.match(path)))
+          path = "#{request.protocol}#{request.host_with_port}#{path}"
+        end
+        return path
+      end
+      
+      # Rails 1.0 compatibility
+      def image_path(*params)
+        path_to_image(*params)
+      end
 
-class FacebookWebSessionTest < Test::Unit::TestCase
-  
-  include FacebookSessionTestMethods
-  
-  def setup
-    @fbsession = RFacebook::FacebookWebSession.new(RFacebook::Dummy::API_KEY, RFacebook::Dummy::API_SECRET)
+      def facebook_debug_panel(options={})
+        return @controller.facebook_debug_panel(options)
+      end
+      
+    end
   end
-  
-  def test_should_return_install_url
-    assert_equal "http://www.facebook.com/install.php?api_key=#{RFacebook::Dummy::API_KEY}", @fbsession.get_install_url
-  end
-  
-  def test_should_return_login_url
-    assert_equal "http://www.facebook.com/login.php?v=1.0&api_key=#{RFacebook::Dummy::API_KEY}", @fbsession.get_login_url
-  end
-  
 end
