@@ -76,7 +76,7 @@ module RFacebook
     def initialize(xml)
       @doc = Hpricot.XML(xml)
       @raw_xml = xml
-      super(@doc.containers[0].inner_html)
+      super(@doc.containers[0].inner_html.strip)
     end
     
     def method_missing(methodSymbol, *params)

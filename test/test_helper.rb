@@ -9,6 +9,11 @@ module RFacebook
   
     API_KEY = "dummykey123"
     API_SECRET = "dummysecret456"
+    
+    AUTH_CREATETOKEN_RESPONSE = <<-EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <auth_createToken_response xmlns="http://api.facebook.com/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://api.facebook.com/1.0/ http://api.facebook.com/1.0/facebook.xsd">3e4a22bb2f5ed75114b0fc9995ea85f1</auth_createToken_response>
+    EOF
   
     ERROR_RESPONSE = <<-EOF
       <?xml version="1.0" encoding="UTF-8"?>
