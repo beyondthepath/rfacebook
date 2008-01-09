@@ -102,7 +102,7 @@ module RFacebook
         # as a last resort, if we are an iframe app, we might have saved the
         # fbparams to the session previously
         if @fbparams.size == 0
-          @fbparams ||= session[:__RFACEBOOK_fbparams] || {}
+          @fbparams ||= session[:_rfacebook_fbparams] || {}
         end
         
         # return fbparams (may or may not be populated)
@@ -118,8 +118,8 @@ module RFacebook
       def fbsession
         
         # do a check to ensure that we nil out the fbsession_holder in case there is a new user visiting
-        if session[:__RFACEBOOK_fbsession_holder] and fbparams["session_key"] and session[:__RFACEBOOK_fbsession_holder].session_key != fbparams["session_key"]
-          session[:__RFACEBOOK_fbsession_holder] = nil
+        if session[:_rfacebook_fbsession_holder] and fbparams["session_key"] and session[:_rfacebook_fbsession_holder].session_key != fbparams["session_key"]
+          session[:_rfacebook_fbsession_holder] = nil
         end
         
         # if we have verified fb_sig_* params, we should be able to activate the session here
@@ -143,9 +143,9 @@ module RFacebook
         
         # if we still don't have a session, check the Rails session
         # (used for external and iframe apps when fb_sig POST params weren't present)
-        if (!fbsession_holder.ready? and session[:__RFACEBOOK_fbsession_holder] and session[:__RFACEBOOK_fbsession_holder].ready?)
+        if (!fbsession_holder.ready? and session[:_rfacebook_fbsession_holder] and session[:_rfacebook_fbsession_holder].ready?)
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: grabbing Facebook session from Rails session"
-          @fbsession_holder = session[:__RFACEBOOK_fbsession_holder]
+          @fbsession_holder = session[:_rfacebook_fbsession_holder]
           @fbsession_holder.logger = RAILS_DEFAULT_LOGGER
         end
         
@@ -197,8 +197,8 @@ module RFacebook
       
       # clear the current session so that a new user can log in
       def log_out_of_facebook
-        session[:__RFACEBOOK_fbsession_holder] = nil
-        session[:__RFACEBOOK_fbparams] = nil
+        session[:_rfacebook_fbsession_holder] = nil
+        session[:_rfacebook_fbparams] = nil
         @fbsession_holder = nil
       end
       
@@ -268,6 +268,45 @@ module RFacebook
         end
         return true
       end
+
+      ################################################################################################
+      ################################################################################################
+      # :section: Debug panel
+      ################################################################################################
+      
+      # special rendering method to use when debugging
+      def render_with_facebook_debug_panel(options={})
+        begin
+          renderedOutput = render_to_string(options)
+        rescue Exception => e
+          renderedOutput = facebook_canvas_backtrace(e)
+        end
+        render :text =>  "#{facebook_debug_panel}#{renderedOutput}"
+      end
+            
+      # returns HTML containing information about the current environment (API key, API secret, etc.)
+      def facebook_debug_panel
+        templatePath = File.join(File.dirname(__FILE__), "..", "templates", "debug_panel.rhtml")
+        template = File.read(templatePath)
+        return ERB.new(template).result(Proc.new{})
+      end
+      
+      # used for the debug panel, runs a series of tests to determine what might be wrong
+      # with your particular environment
+      def facebook_status_manager
+        checks = [
+          SessionStatusCheck.new(self),
+          (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
+          InCanvasStatusCheck.new(self),
+          InFrameStatusCheck.new(self),
+          (CanvasPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (CallbackPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
+          (FinishFacebookLoginStatusCheck.new(self) unless (in_facebook_canvas? or in_facebook_frame?)),
+          APIKeyStatusCheck.new(self),
+          APISecretStatusCheck.new(self)
+          ].compact
+        return StatusManager.new(checks)
+      end
       
       ################################################################################################
       ################################################################################################
@@ -316,10 +355,10 @@ module RFacebook
       def persist_fbsession
         if (!in_facebook_canvas? and fbsession_holder.ready?)
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: persisting Facebook session information into Rails session"
-          session[:__RFACEBOOK_fbsession_holder] = @fbsession_holder.dup
+          session[:_rfacebook_fbsession_holder] = @fbsession_holder.dup
           if in_facebook_frame?
             # we need iframe apps to remember they are iframe apps
-            session[:__RFACEBOOK_fbparams] = fbparams
+            session[:_rfacebook_fbparams] = fbparams
           end
         end
       end
@@ -341,39 +380,10 @@ module RFacebook
       
       # override the reset_session so that the entire session is cleared
       # (patch from chrisff)
-      def reset_session__RFACEBOOK
+      def reset_session_with_rfacebook
         @fbsession_holder=nil
         @fbparams=nil
-        reset_session__ALIASED
-      end
-
-      ################################################################################################
-      ################################################################################################
-      # :section: Debug panel
-      ################################################################################################
-            
-      # returns HTML containing information about the current environment (API key, API secret, etc.)
-      def facebook_debug_panel(options={})
-        templatePath = File.join(File.dirname(__FILE__), "..", "templates", "debug_panel.rhtml")
-        template = File.read(templatePath)
-        return ERB.new(template).result(Proc.new{})
-      end
-      
-      # used for the debug panel, runs a series of tests to determine what might be wrong
-      # with your particular environment
-      def facebook_status_manager
-        checks = [
-          SessionStatusCheck.new(self),
-          (FacebookParamsStatusCheck.new(self) unless (!in_facebook_canvas? and !in_facebook_frame?)),
-          InCanvasStatusCheck.new(self),
-          InFrameStatusCheck.new(self),
-          (CanvasPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
-          (CallbackPathStatusCheck.new(self) unless (!in_facebook_canvas? or !in_facebook_frame?)),
-          (FinishFacebookLoginStatusCheck.new(self) unless (in_facebook_canvas? or in_facebook_frame?)),
-          APIKeyStatusCheck.new(self),
-          APISecretStatusCheck.new(self)
-          ].compact
-        return StatusManager.new(checks)
+        reset_session_without_rfacebook
       end
       
       ################################################################################################
@@ -382,14 +392,14 @@ module RFacebook
       ################################################################################################
       
       # overrides to allow backtraces in Facebook canvas pages
-      def rescue_action__RFACEBOOK(exception)
+      def rescue_action_with_rfacebook(exception)
         # render a special backtrace for canvas pages
         if in_facebook_canvas?
-          render(:text => facebook_canvas_backtrace(exception))
+          render(:text => "#{facebook_debug_panel}#{facebook_canvas_backtrace(exception)}")
         
         # all other pages get the default rescue behavior
         else
-          rescue_action__ALIASED
+          rescue_action_without_rfacebook
         end
       end
       
@@ -431,7 +441,7 @@ module RFacebook
       ################################################################################################
       
       # overrides url_for to account for canvas and iframe environments
-      def url_for__RFACEBOOK(options={})
+      def url_for_with_rfacebook(options={})
         
         # fix problems that some Rails installations had with sending nil options
         options ||= {}
@@ -451,7 +461,7 @@ module RFacebook
           end
           
           # try to get a regular URL
-          path = url_for__ALIASED(options)
+          path = url_for_without_rfacebook(options)
                           
           # replace anything that references the callback with the
           # Facebook canvas equivalent (apps.facebook.com/*)
@@ -477,18 +487,18 @@ module RFacebook
         # full callback rewriting
         elsif fullCallback
           options[:only_path] = true
-          path = "#{request.protocol}#{request.host}:#{request.port}#{url_for__ALIASED(options)}"
+          path = "#{request.protocol}#{request.host}:#{request.port}#{url_for_without_rfacebook(options)}"
         
         # regular Rails rewriting
         else
-          path = url_for__ALIASED(options)
+          path = url_for_without_rfacebook(options)
         end
 
         return path
       end
       
       # overrides redirect_to to account for canvas and iframe environments
-      def redirect_to__RFACEBOOK(options = {}, responseStatus = {})
+      def redirect_to_with_rfacebook(options = {}, responseStatus = {})
         # get the url
         redirectUrl = url_for(options)
 
@@ -506,7 +516,7 @@ module RFacebook
         # otherwise, we only need to do a standard redirect
         else
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
-          redirect_to__ALIASED(options, responseStatus)
+          redirect_to_without_rfacebook(options, responseStatus)
         end
       end
 
@@ -515,68 +525,25 @@ module RFacebook
       # :section: Extension management
       ################################################################################################
 
-      # TODO: remove the double-include checking below, it was only here for backwards-compatibility with the old controller extensions        
-      CLASSES_EXTENDED = [] # :nodoc:
       def self.included(base) # :nodoc:
-        
-        # check for a double include
-        doubleInclude = false
-        CLASSES_EXTENDED.each do |klass|
-          if base.allocate.is_a?(klass)
-            doubleInclude = true
-          end
+        # since we currently override ALL controllers, we have to alias
+        # the old methods.  Future versions will avoid this inclusion.
+        # TODO: allow controller-by-controller inclusion
+        base.class_eval do
+          alias_method_chain :url_for,        :rfacebook
+          alias_method_chain :redirect_to,    :rfacebook
+          alias_method_chain :reset_session,  :rfacebook
+          alias_method_chain :rescue_action,  :rfacebook
         end
         
-        if doubleInclude
-          RAILS_DEFAULT_LOGGER.info "** RFACEBOOK WARNING: detected double-include of RFacebook controller extensions.  Please see instructions for RFacebook on Rails plugin usage (http://rfacebook.rubyforge.org).  You may be including the deprecated RFacebook::RailsControllerExtensions in addition to the plugin."
-          
-        else
-          
-          # keep track that we have already extended this class
-          CLASSES_EXTENDED << base
-          
-          # since we currently override ALL controllers, we have to alias
-          # the old methods.  Future versions will avoid this inclusion.
-          # TODO: allow controller-by-controller inclusion
-          base.class_eval '
-            alias_method(:url_for__ALIASED, :url_for)
-            alias_method(:url_for, :url_for__RFACEBOOK)      
-          
-            alias_method(:redirect_to__ALIASED, :redirect_to)
-            alias_method(:redirect_to, :redirect_to__RFACEBOOK)
-          
-            alias_method(:reset_session__ALIASED, :reset_session)
-            alias_method(:reset_session, :reset_session__RFACEBOOK)
-          
-            alias_method(:rescue_action__ALIASED, :rescue_action)
-            alias_method(:rescue_action, :rescue_action__RFACEBOOK)
-          '
-          
-          # ensure that every action handles facebook login
-          base.before_filter(:handle_facebook_login)
-          
-          # ensure that we persist the Facebook session into the Rails session (if possible)
-          base.after_filter(:persist_fbsession)
-          
-          # fix third party cookies in IE
-          base.before_filter{ |c| c.headers['P3P'] = %|CP="NOI DSP COR NID ADMa OPTa OUR NOR"| }
-          
-        end
-      end
-      
-      ################################################################################################
-      ################################################################################################
-      # :section: Deprecated methods
-      ################################################################################################
-      
-      def render_with_facebook_debug_panel(options={}) # :nodoc:
-        RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_expired? is deprecated, use expired? instead"
-        begin
-          renderedOutput = render_to_string(options)
-        rescue Exception => e
-          renderedOutput = facebook_canvas_backtrace(e)
-        end
-        render :text =>  "#{facebook_debug_panel}#{renderedOutput}"
+        # ensure that every action handles facebook login
+        base.before_filter(:handle_facebook_login)
+        
+        # ensure that we persist the Facebook session into the Rails session (if possible)
+        base.after_filter(:persist_fbsession)
+        
+        # fix third party cookies in IE
+        base.before_filter{ |c| c.headers['P3P'] = %|CP="NOI DSP COR NID ADMa OPTa OUR NOR"| }          
       end
 
     end

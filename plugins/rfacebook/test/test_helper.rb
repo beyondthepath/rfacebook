@@ -35,11 +35,9 @@ require "action_controller/integration"
 class Test::Unit::TestCase
   
   def assert_rfacebook_overrides_method(object, methodSymbol)
-    
-    # by convention, RFacebook postfixes its overrides with __RFACEBOOK
-    # and postfixes the original methods with __ALIASED
-    rfacebookMethodSymbol = "#{methodSymbol}__RFACEBOOK".to_sym
-    aliasedMethodSymbol = "#{methodSymbol}__ALIASED".to_sym
+    # by convention, RFacebook uses the alias_method_chain on certain methods
+    rfacebookMethodSymbol = "#{methodSymbol}_with_rfacebook".to_sym
+    aliasedMethodSymbol = "#{methodSymbol}_without_rfacebook".to_sym
     
     # string description of this object
     objectDescription = object.is_a?(Class) ? object.to_s : object.class.to_s
@@ -52,7 +50,6 @@ class Test::Unit::TestCase
     
     # ensure that the override is actually overriding the given method
     assert object.method(methodSymbol) == object.method(rfacebookMethodSymbol), "#{objectDescription}::#{methodSymbol} does not appear to be overridden by RFacebook"
-    
   end
   
 end
