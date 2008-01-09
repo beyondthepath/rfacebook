@@ -241,7 +241,7 @@ module RFacebook
             else
               RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Redirecting to login for canvas app"
               urlOptions.merge!({:canvas=>true})
-              redirect_to sess.get_login_url(urlOptions)
+              redirect_to fbsession.get_login_url(urlOptions)
               return false
               
             end
