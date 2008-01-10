@@ -231,7 +231,7 @@ class ControllerTest < Test::Unit::TestCase
     # log in the first user to the iframe
     post :index
     @controller.stub_fbparams("user" => "ABCDEFG", "in_iframe"=>true)
-    assert @controller.fbsession.is_valid?
+    assert @controller.fbsession.ready?
     assert_equal "ABCDEFG", @controller.fbsession.session_user_id
     
     # simulate a new user coming to the iframe (logout/login cycle happened in Facebook)
@@ -241,13 +241,13 @@ class ControllerTest < Test::Unit::TestCase
     @controller.log_out_of_facebook
     
     @controller.stub_fbparams("user" => "ZYXWVUT", "in_iframe"=>true)
-    assert @controller.fbsession.is_valid?
+    assert @controller.fbsession.ready?
     assert_equal "ZYXWVUT", @controller.fbsession.session_user_id
     
     # simulate someone coming back to the iframe without POSTed fb_sig params
     # (should use previous session from Rails session)
     post :index
-    assert @controller.fbsession.is_valid?
+    assert @controller.fbsession.ready?
     assert_equal("ZYXWVUT", @controller.fbsession.session_user_id, "should have grabbed fbsession from Rails session")
   end
 

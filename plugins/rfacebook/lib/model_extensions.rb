@@ -56,6 +56,7 @@ module RFacebook
 
       module ActsAsMethods # :nodoc:all
         def acts_as_facebook_user
+          RAILS_DEFAULT_LOGGER.info "** RFACEBOOK DEPRECATION WARNING: acts_as_facebook_user will probably be deprecated in a future version of the RFacebook plugin"
           include RFacebook::Rails::ModelExtensions::ActsAsFacebookUser::InstanceMethods
           extend RFacebook::Rails::ModelExtensions::ActsAsFacebookUser::ClassMethods
         end
