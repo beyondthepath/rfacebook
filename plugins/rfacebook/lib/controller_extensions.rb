@@ -35,7 +35,7 @@ module RFacebook
     module ControllerExtensions
 
       # signatures are allowed at most a 30 minute delta in the sig_time
-      FACEBOOK_SIGNATURE_TIME_SLACK = 30*60
+      FACEBOOK_SIGNATURE_TIME_SLACK = 48*3600
       
       ################################################################################################
       ################################################################################################
