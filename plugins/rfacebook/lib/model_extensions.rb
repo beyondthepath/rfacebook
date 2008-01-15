@@ -124,7 +124,7 @@ module RFacebook
             end
             
             # check that we have an fbsession
-            if fbsession.is_a?(RFacebook::FacebookWebSession)
+            unless fbsession.is_a?(RFacebook::FacebookWebSession)
               RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: find_or_create_by_facebook_session needs a :facebook_session specified"
               return nil
             end

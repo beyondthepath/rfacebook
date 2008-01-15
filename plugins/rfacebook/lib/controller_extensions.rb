@@ -399,7 +399,7 @@ module RFacebook
         
         # all other pages get the default rescue behavior
         else
-          rescue_action_without_rfacebook
+          rescue_action_without_rfacebook(exception)
         end
       end
       
