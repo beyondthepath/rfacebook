@@ -32,6 +32,7 @@ require File.join(File.dirname(__FILE__), "lib", "controller_extensions")
 require File.join(File.dirname(__FILE__), "lib", "model_extensions")
 require File.join(File.dirname(__FILE__), "lib", "session_extensions")
 
+
 # load Facebook YAML configuration file (credit: Evan Weaver)
 ::FACEBOOK = {}
 begin

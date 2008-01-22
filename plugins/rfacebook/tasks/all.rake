@@ -88,8 +88,6 @@ production:
   
   
   namespace "tunnel" do
-    # initialize the environment
-    require File.join(File.dirname(__FILE__), '../init.rb')
 
     ######################################################################################
     ######################################################################################
@@ -128,10 +126,7 @@ Host #{remoteHost}
     ######################################################################################
     ######################################################################################
     desc "Check if reverse tunnel is running"
-    task "status" => "environment" do
-      # initialize the environment
-      require File.join(File.dirname(__FILE__), '../init.rb')
-    
+    task "status" => "environment" do    
       sshPort = FACEBOOK['tunnel']['ssh_port'] || "22"
       if `ssh -p #{sshPort} #{FACEBOOK['tunnel']['username']}@#{FACEBOOK['tunnel']['host']} netstat -an | 
           egrep "tcp.*:#{FACEBOOK['tunnel']['port']}.*LISTEN" | wc`.to_i > 0
