@@ -1,6 +1,7 @@
-# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
-# All rights reserved.
-# 
+# AUTHORS:
+# - Matt Pizzimenti (www.livelearncode.com)
+
+# LICENSE:
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
 # 
@@ -25,7 +26,10 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+
+
+# FIXME: work out the kinks of Facepricot, including moving to JSON support rather than XML, and renaming to something less inane (like FacebookResponse)
+# NOTE: Facepricot will likely be deprecated in version 1.0
 
 require "hpricot"
 
@@ -34,7 +38,7 @@ module RFacebook
   module FacepricotChaining
     
     private
-  
+    
     def make_facepricot_chain(key, doc) # :nodoc:
       
       if matches = /(.*)_list/.match(key)
@@ -69,14 +73,13 @@ module RFacebook
     
   end
   
-  class Facepricot < String
+  class Facepricot
     
     include FacepricotChaining
     
     def initialize(xml)
       @doc = Hpricot.XML(xml)
       @raw_xml = xml
-      super(@doc.containers[0].inner_html.strip)
     end
     
     def method_missing(methodSymbol, *params)
@@ -108,11 +111,11 @@ module RFacebook
     end
         
   end
-  
+
   class FacepricotChain < String
 
     include FacepricotChaining
-
+    
     def initialize(hpricotDoc)
       super(hpricotDoc.inner_html.gsub("&amp;", "&"))
       @doc = hpricotDoc

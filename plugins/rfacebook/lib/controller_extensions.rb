@@ -1,6 +1,7 @@
-# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
-# All rights reserved.
-# 
+# AUTHORS:
+# - Matt Pizzimenti (www.livelearncode.com)
+
+# LICENSE:
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
 # 
@@ -25,7 +26,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 
 require "facebook_web_session"
 require File.join(File.dirname(__FILE__), "status_manager")

@@ -34,3 +34,17 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+============================== RELEASE NOTES ==============================
+
+0.9.8:
+	- split up the Gem (core library) and plugin (Rails extensions) - you will now have to update your Rails plugin separately from the Gem
+	- better documentation in the core library
+	- deprecated all the confusing is_valid/is_ready/is_activated/is_expired methods in favor of simply 'ready?' and 'expired?'
+	- removed the plugin code from the gem...the Rails plugin is now much better-separated
+	- moved unit tests that applied to the core into the Gem itself (rather than the plugin)
+	- cleaned out some unnecessary code in controller_extensions
+	- refactored signature checking so that it happens in the plugin rather than in the core lib
+	- added ssh_port to tunnel configuration (if for some reason you dont use 22)
+	- added 'log_out_of_facebook' method to force a user to log out (clears the fbsession data)

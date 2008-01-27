@@ -20,12 +20,20 @@
 	</div>
 
 	<div id="Body">
+		
+		<p style="background-color: #FDF0BA; border: 1px solid #9E6F18; padding: 10px">
+			<strong>NOTE</strong>:  I have been paying attention to some of the work that Chad Fowler and others have been doing on
+			<a href="http://facebooker.rubyforge.org/">Facebooker</a>, and it looks pretty good at this point.  Once Facebooker sees
+			an official release, I may cease development on RFacebook in favor of Facebooker.  You can read more of my thoughts
+			on the subject at my <a href="http://www.livelearncode.com/archives/30">blog</a>.
+		</p>
+		
 		<h1>What is RFacebook?</h1>
 			
 		<a id="CurrentVersionBox" href="http://rubyforge.org/frs/?group_id=3607">
 			<span class="message">gem version</span>
 			<br/>
-			<span class="number">0.9.5</span>
+			<span class="number">0.9.8</span>
 		</a>
 			
 		<p>
@@ -36,9 +44,9 @@
 		</p>
 		
 		<p>			
-			And now, with the <a href="quickstart.html">RFacebook on Rails</a> plugin,
+			And now, with the <a href="quickstart.html">RFacebook</a> Rails plugin,
 			you can have even more Facebook goodness in Rails.  Besides extensions for controllers, views, models, and sessions, it even
-			has a great <a href="debugpanel.html">debug panel</a> that lets you see what's going on behind the scenes.
+			has a great <a href="debugpanel.html">debug panel</a> for beginners that lets you see what's going on behind the scenes.
 		
 		</p>
 		<p>
@@ -52,8 +60,8 @@
 		
 		<p>
 			If you are a Rails programmer, you'll want to go directly to the <a href="quickstart.html">QuickStart</a>.
-			This describes how to install the <strong>RFacebook Gem</strong> and the <strong>RFacebook on Rails Plugin</strong>.
-			It also covers the basic features available in your models, views, and controllers.
+			This describes how to install the <strong>Gem</strong> and the <strong>Rails Plugin</strong>.
+			It also covers the basic features that the Rails Plugin adds to your models, views, and controllers.
 		</p>
 		<p>
 			After checking that out, you might want to peruse some <a href="facebookapi.html">sample API calls</a>, as well
@@ -61,7 +69,7 @@
 		</p>
 		
 		<p>
-			If you really want to get into the details, go to the <a href="doc/">full RFacebook RDoc documentation</a>.
+			If you really want to get into the details, go to the <a href="gemdoc/">RFacebook Gem documentation</a> and the <a href="plugindoc/">RFacebook Rails Plugin documentation</a>.
 		</p>
 		
 		<h1>Where can I get help?</h1>
@@ -73,32 +81,25 @@
 			so that it can be fixed right away.
 		</p>
 		
-		<p>
-			You can also check out the
-			<a href="http://rubyforge.org/frs/download.php/23678/rfacebook_on_rails_sample.zip">sample RFacebook on Rails application</a>
-			if you're having trouble getting started.
-		</p>
-
-		
 		<h1>How can I contribute?</h1>
 		<p>
 			Maintaining RFacebook is not a trivial thing.  There are many different ways to
-			make a Facebook application (canvas, iframe, and external), and there are also tons of
-			obscure Rails components and plugins that need to be supported.  All of this needs to
+			make a Facebook application (canvas, iframe, and external), and there are lots of obscure
+			components of Rails that need to be modified to work properly inside Facebok.  All of this needs to
 			<strong>work seamlessly together</strong> in a single library.
 		</p>
 		<p>
 			If you are an experienced Rails programmer, we'd love to have you <a href="http://rubyforge.org/projects/rfacebook">contribute to the
 			project</a>.  Even if it's just the occasional patch, every bit counts.
-			In particular, we need developers <strong>working on IFRAME applications</strong>
-			as well as a developer who is familiar with <strong>Rails unit testing that simulates external APIs</strong> (like Facebook's).
+			In particular, we need developers <strong>working on iframe applications</strong>, especially
+			in the area of session management.
 		</p>
 	</div>
 	
 </div>
 
 <div id="Footer" align="center">
-	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">Matt Pizzimenti</a>.  All rights reserved.
+	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">livelearncode</a>.  All rights reserved.
 </div>
 
 </body>

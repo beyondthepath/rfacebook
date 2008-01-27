@@ -37,12 +37,12 @@
 				<li>View and Controller integration (<strong>url_for</strong> and <strong>redirect_to</strong> "just work")</li>
 				<li>Works for Canvas, IFrame, and External applications</li>
 				<li>Session management automatically uses fb_sig in lieu of cookies when in canvas</li>
-				<li>Models can <strong>act_as_facebook_user</strong></li>
 				<li>Ensures security by checking signature given in canvas</li>
 				<li>Configuration is done via <strong>facebook.yml</strong> (allowing multiple environments to be easily configured and versioned)</li>
 				<li><strong>Unit tested</strong> across both the API client (RFacebook) and the Rails plugin (RFacebook on Rails).</li>
 				<li>Readable backtraces inside the Canvas</li>
 				<li><strong>Debug panel</strong> to help with common problems</li>
+				<li>the interface <strong>won't break</strong> when Facebook alters the API (remote methods are invoked via method_missing)</li>
 			</ul>
 		</p>
 
@@ -55,7 +55,7 @@
 </div>
 
 <div id="Footer" align="center">
-	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">Matt Pizzimenti</a>.  All rights reserved.
+	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">livelearncode</a>.  All rights reserved.
 </div>
 
 </body>

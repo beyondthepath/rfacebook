@@ -1,6 +1,8 @@
-# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
-# All rights reserved.
-# 
+# AUTHORS:
+# - Matt Pizzimenti (www.livelearncode.com)
+# - Evan Weaver (http://blog.evanweaver.com)
+
+# LICENSE:
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
 # 
@@ -25,7 +27,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 
 # Rake tasks modified from Evan Weaver's article
 # http://blog.evanweaver.com/articles/2007/07/13/developing-a-facebook-app-locally

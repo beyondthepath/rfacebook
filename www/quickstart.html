@@ -39,23 +39,16 @@ $ gem install rfacebook
 </div>
 		
 		<p>
-			This will install the latest RFacebook library (make sure it is <strong>version 0.8.0 or better</strong>).
-			Now, we want to install the plugin as well. From your Rails directory, type:
+			This will install the latest RFacebook core API client. Now, we want to install
+			the plugin as well. From your Rails directory, type:
 		</p>
 		
 <div class="commandlineWrapper">
 <pre class="commandline">
-$ script/plugin install svn://rubyforge.org/var/svn/rfacebook/plugins/rfacebook_on_rails
+$ script/plugin install svn://rubyforge.org/var/svn/rfacebook/plugins/rfacebook
 </pre>
 </div>
 		
-		<p>
-			This will install the RFacebook on Rails plugin.
-			If you have trouble getting that to work, then just download the plugin
-			<a href="rfacebook_on_rails.zip">here</a>
-			and unzip it into <strong>vendor/plugins/rfacebook_on_rails</strong>.
-		</p>
-
 		<h2>2. Configure facebook.yml</h2>
 		<p>
 			Now that you have everything installed, you need to set up your <strong>facebook.yml</strong>
@@ -113,7 +106,7 @@ nameB = users[1].first_name
 		<p>
 			The plugin automatically makes Rails URLs relative to <strong>http://apps.facebook.com</strong>
 			when it detects that you are inside the Canvas.  This saves a lot of headaches, and lets
-			you use the wonderful Routes just like you always did <em>(url_for, redirect_to, image_path, etc.)</em>:
+			you use Routes just like you always did <em>(url_for, redirect_to, image_path, etc.)</em>:
 		</p>
 
 
@@ -131,37 +124,10 @@ redirect_to :controller =&gt; 'MyController', :action =&gt; 'myAction'
 			variables in the Facebook Canvas (supports PStore, ActiveRecordStore, DRbStore, and more!).
 		</p>
 		
-		<h2>4. Use acts_as_facebook_user</h2>
-		<p>
-			If you want, you can tie your Rails users directly to Facebook sessions.
-			Simply type <strong>acts_as_facebook_user</strong> in your model, and make sure that
-			your database has 2 fields: <strong>facebook_session_key</strong> and <strong>facebook_uid</strong>.
-			Now, you can easily find, create, and access your users:
-		</p>
-
-
-<div class="commandlineWrapper">
-<pre class="commandline">
-user = User.find_or_create_by_facebook_session(fbsession)
-fullName = user.first_name + user.last_name
-</pre>
-</div>
-
-		<p>
-			In addition to <strong>first_name</strong> and <strong>last_name</strong>, your User objects will have all of the fields given by Facebook available to them: 
-			<em>about_me, activities, affiliations, birthday, books, current_location, education_history,
-			name, first_name, last_name, hometown_location, hs_info, interests, relationship_status,
-			meeting_for, meeting_sex, movies, music, notes_count, political, profile_update_time, quotes,
-			religion, sex, significant_other_id, status, timezone, tv, wall_count, work_history,
-			pic, pic_big, pic_small, pic_square</em>.
-		</p>
-
 		
-		
-		<h2>5. Stay up to date</h2>
+		<h2>4. Stay up to date</h2>
 		<p>
 			RFacebook is being improved all the time, so be sure to check back for updates.
-			You'll almost never need to update the plugin, since it hooks directly into the gem.
 			To stay up to date, simply update your gem:
 		</p>
 
@@ -169,6 +135,16 @@ fullName = user.first_name + user.last_name
 <div class="commandlineWrapper">		
 <pre class="commandline">
 $ gem update rfacebook
+</pre>
+</div>
+		<p>
+			...and update your plugin:
+		</p>
+
+
+<div class="commandlineWrapper">		
+<pre class="commandline">
+$ script/plugin update rfacebook
 </pre>
 </div>
 
@@ -185,7 +161,7 @@ $ gem update rfacebook
 </div>
 
 <div id="Footer" align="center">
-	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">Matt Pizzimenti</a>.  All rights reserved.
+	RFacebook, &copy; 2007 <a href="http://www.livelearncode.com">livelearncode</a>.  All rights reserved.
 </div>
 
 </body>

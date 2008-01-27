@@ -1,6 +1,7 @@
-# Copyright (c) 2007, Matt Pizzimenti (www.livelearncode.com)
-# All rights reserved.
-# 
+# AUTHORS:
+# - Matt Pizzimenti (www.livelearncode.com)
+
+# LICENSE:
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
 # 
@@ -25,7 +26,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 
 require "digest/md5"
 require "net/https"
@@ -70,20 +70,16 @@ module RFacebook
     # :section: Properties
     ################################################################################################
   
-    # Property: session_user_id
-    #   The user id of the user associated with this sesssion.
+    # The user id of the user associated with this sesssion.
     attr_reader :session_user_id
   
-    # Property: session_key
-    #   The key for this session. You will need to save this for infinite sessions.
+    # The key for this session. You will need to save this for infinite sessions.
     attr_reader :session_key
   
-    # Property: session_expires
-    #   The expiration time of this session, as given from Facebook API login.
+    # The expiration time of this session, as given from Facebook API login.
     attr_reader :session_expires
   
-    # Property: logger
-    #   Can be set to any valid logger (for example, RAIL_DEFAULT_LOGGER)
+    # Can be set to any valid logger (for example, RAIL_DEFAULT_LOGGER)
     attr_accessor :logger
   
     ################################################################################################
@@ -326,49 +322,49 @@ module RFacebook
     public
 
     # DEPRECATED
-    def is_expired?
+    def is_expired? # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_expired? is deprecated, use expired? instead"
-      return is_ready?
+      return expired?
     end
 
     # DEPRECATED
-    def is_activated?
+    def is_activated? # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_activated? is deprecated, use ready? instead"
-      return is_ready?
+      return ready?
     end
   
     # DEPRECATED
-    def is_valid?
+    def is_valid? # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_valid? is deprecated, use ready? instead"
       return ready?
     end
   
     # DEPRECATED
-    def is_ready?
+    def is_ready? # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: is_valid? is deprecated, use ready? instead"
       return ready?
     end
   
     # DEPRECATED
-    def last_error_message
+    def last_error_message # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: last_error_message is deprecated"
       return @last_error_message
     end
   
     # DEPRECATED
-    def last_error_code
+    def last_error_code # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: last_error_code is deprecated"
       return @last_error_code
     end
   
     # DEPRECATED
-    def suppress_errors
+    def suppress_errors # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: suppress_errors is deprecated, use quiet? instead"
       return quiet?
     end
   
     # DEPRECATED
-    def suppress_errors=(val)
+    def suppress_errors=(val) # :nodoc:
       RAILS_DEFAULT_LOGGER.info "** RFACEBOOK(GEM) DEPRECATION WARNING: suppress_errors= is deprecated, use quiet= instead"
       @quiet=val
     end
