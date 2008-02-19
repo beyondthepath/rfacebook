@@ -516,7 +516,11 @@ module RFacebook
         # otherwise, we only need to do a standard redirect
         else
           RAILS_DEFAULT_LOGGER.debug "** RFACEBOOK INFO: Regular redirect_to"
-          redirect_to_without_rfacebook(options, responseStatus)
+          begin
+          	redirect_to_without_rfacebook(options, responseStatus)
+					rescue ArgumentError
+						redirect_to_without_rfacebook(options)
+					end
         end
       end
 
