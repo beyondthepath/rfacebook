@@ -1,0 +1,40 @@
+development:
+  facebook:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
+    tunnel:
+      username: user
+      host: yourdomain.com
+      port: 3333
+      local_port: 3000
+
+  bebo:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
+test:
+  facebook:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
+  bebo:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
+
+production:
+  facebook:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
+  bebo:
+    key: <key>
+    secret: <secret>
+    canvas_path: /canvas/
+    callback_path: /facebook/
