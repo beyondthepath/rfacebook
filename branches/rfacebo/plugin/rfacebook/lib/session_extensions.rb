@@ -145,7 +145,7 @@ module RFacebook::Rails::SessionExtensions # :nodoc:
   def session_id_available?(request) # :nodoc:
     # TODO: we should probably be checking the fb_sig for validity here (template method needed)
     #       ...we can only do this if we can grab the equivalent of a params hash
-    return (lookup_request_parameter(request, "fb_sig_in_canvas") or lookup_request_parameter(request, "fb_sig_is_ajax"))
+    return (!lookup_request_parameter(request, "fb_sig_in_canvas").blank? or !lookup_request_parameter(request, "fb_sig_is_ajax").blank?)
   end
     
 end
