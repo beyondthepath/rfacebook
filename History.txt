@@ -1,0 +1,17 @@
+== 0.9.9: 2008-09-18
+
+* Maintenance taken over by Nick Zadrozny, Jeremy Boles of ROOV.com
+* Transitionary release toward a stabler 1.0
+* Moved to git and reorganized source code to use hoe (based on newgem)
+
+
+== 0.9.8:
+* split up the Gem (core library) and plugin (Rails extensions) - you will now have to update your Rails plugin separately from the Gem
+* better documentation in the core library
+* deprecated all the confusing is_valid/is_ready/is_activated/is_expired methods in favor of simply 'ready?' and 'expired?'
+* removed the plugin code from the gem...the Rails plugin is now much better-separated
+* moved unit tests that applied to the core into the Gem itself (rather than the plugin)
+* cleaned out some unnecessary code in controller_extensions
+* refactored signature checking so that it happens in the plugin rather than in the core lib
+* added ssh_port to tunnel configuration (if for some reason you dont use 22)
+* added 'log_out_of_facebook' method to force a user to log out (clears the fbsession data)
