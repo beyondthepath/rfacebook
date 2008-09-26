@@ -39,7 +39,7 @@ module RFacebook
 
   API_VERSION               = "1.0"
 
-  API_HOST                  = "api.facebook.com"
+  API_HOST                  = "api.new.facebook.com"
   API_PATH_REST             = "/restserver.php"
 
   WWW_HOST                  = "www.facebook.com"
