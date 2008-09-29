@@ -74,6 +74,20 @@ module RFacebook
       return "http://#{WWW_HOST}#{WWW_PATH_INSTALL}?api_key=#{@api_key}#{optionalNext}"
     end
     
+    # Gets the register URL for this application
+    #
+    # options.next::  the page to redirect to after installation
+    def get_register_url(options={})
+      # handle options
+      nextPage = options[:next] ||= nil
+    
+      # url pieces
+      optionalNext = (nextPage == nil) ? "" : "&next=#{CGI.escape(nextPage.to_s)}"
+    
+      # build and return URL
+      return "http://#{WWW_HOST}#{WWW_PATH_REGISTER}?api_key=#{@api_key}#{optionalNext}"
+    end
+    
     # Gets the session information available after current user logs in.
     # 
     # auth_token:: string token passed back by the callback URL

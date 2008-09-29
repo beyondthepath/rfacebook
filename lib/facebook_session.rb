@@ -46,6 +46,7 @@ module RFacebook
   WWW_PATH_LOGIN            = "/login.php"
   WWW_PATH_ADD              = "/add.php"
   WWW_PATH_INSTALL          = "/install.php"
+  WWW_PATH_REGISTER         = "/p.php"
   
   
   class FacebookSession
